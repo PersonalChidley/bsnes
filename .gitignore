@@ -1,1 +1,4 @@
 hiro/qt/qt.moc
+
+# Local game images must never be committed.
+roms/

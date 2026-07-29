@@ -8,7 +8,7 @@ type RomPickerProps = {
 export function RomPicker({ disabled, onSelect }: RomPickerProps) {
   return (
     <label className={`rom-picker ${disabled ? "is-disabled" : ""}`}>
-      <span>Choose a ROM</span>
+      <span>Choose a ROM file</span>
       <input
         type="file"
         accept=".sfc,.smc,application/octet-stream"

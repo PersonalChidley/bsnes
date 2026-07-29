@@ -13,15 +13,24 @@ canvas, file picker, input, and eventually browser persistence.
 ## Project status
 
 The native application and Libretro core remain the mature upstream products.
-The web port is at **milestone zero**:
+The web port is in **first-frame validation**:
 
 - a Next.js shell and dedicated emulator worker are implemented;
 - a small browser-facing C ABI wraps the existing Libretro adapter;
 - an Emscripten fiber backend has been added for bsnes' cooperative scheduler;
+- the C++ WebAssembly target compiles with Emscripten 6.0.5;
+- a Chrome runtime smoke test loaded a user-provided ROM, rendered a 256×224
+  frame, and exercised play, pause, reset, and keyboard input;
+- browser audio uses an AudioWorklet plus a SharedArrayBuffer PCM ring with
+  live buffer, drift, and underrun/overrun metrics;
+- the browser polls up to two USB or Bluetooth game controllers through the
+  Gamepad API, with standard-layout mapping and analog directional fallback;
 - the shell passes lint, strict TypeScript checking, a production build, and a
-  clean npm audit;
-- the C++ WebAssembly target still needs its first Emscripten compile and
-  legal-ROM runtime test.
+  clean npm audit.
+
+Sustained audible playback across real devices, durable SRAM, long-run
+stability, physical controller compatibility, save-state round trips, and a
+documented public-domain reference ROM remain to be validated.
 
 See [the web-port engineering record](docs/web-port.md) for the detailed review,
 architecture, known risks, and milestones. AI contributors should also read
@@ -59,8 +68,8 @@ npm run dev
 Open <http://localhost:3000>. Until the generated core exists, the shell will
 load normally and report the missing WebAssembly artifact.
 
-To build the core, activate a current Emscripten SDK and install GNU Make
-(MSYS2 on Windows), then run:
+To build the core, activate a current Emscripten SDK and install GNU Make, then
+run:
 
 ```sh
 cd web
@@ -69,7 +78,13 @@ npm run dev
 ```
 
 Generated `bsnes-core.mjs` and `bsnes-core.wasm` files are intentionally ignored.
-No ROMs or console firmware are included.
+ROMs and console firmware must not be committed.
+
+During local development, `.sfc` and `.smc` files stored in `roms/snes/` appear
+in the web cartridge panel. The directory is ignored by Git and its files are
+served only through the local Next.js process. See
+[`web/README.md`](web/README.md#local-rom-library) for configuration and
+deployment precautions.
 
 Validate the browser shell with:
 
@@ -122,8 +137,8 @@ be enabled incrementally as each subsystem is compiled, tested, and documented.
 ## Browser roadmap
 
 1. Compile the core and render the first correct frame.
-2. Validate continuous timing and keyboard/gamepad input.
-3. Add AudioWorklet playback with measured buffering and drift correction.
+2. Validate continuous timing and keyboard/gamepad input on physical devices.
+3. Validate AudioWorklet playback, buffering, and drift across real devices.
 4. Persist SRAM/RTC data and expose save-state import/export.
 5. Test enhancement chips, PAL/NTSC, multiple browsers, and long-run stability.
 6. Add settings, remapping, accessibility, mobile controls, and deployment.

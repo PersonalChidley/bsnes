@@ -2,13 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  AudioPlayback,
+  type AudioPlaybackStats,
+} from "@/lib/emulator/audio";
 import { EmulatorClient } from "@/lib/emulator/client";
+import {
+  GamepadInput,
+  type GamepadAssignment,
+} from "@/lib/emulator/gamepad";
 import type { EmulatorEvent, SnesButton } from "@/lib/emulator/protocol";
 
 import { EmulatorCanvas } from "./EmulatorCanvas";
+import { RomLibrary } from "./RomLibrary";
 import { RomPicker } from "./RomPicker";
 
 type CoreStatus = "loading" | "ready" | "running" | "paused" | "error";
+type AudioStatus = "idle" | "starting" | "playing" | "paused" | "error";
 
 const KEYBOARD_MAP: Record<string, SnesButton> = {
   ArrowUp: "up",
@@ -27,10 +37,22 @@ const KEYBOARD_MAP: Record<string, SnesButton> = {
 
 export function EmulatorShell() {
   const clientRef = useRef<EmulatorClient | null>(null);
+  const audioRef = useRef<AudioPlayback | null>(null);
+  const gamepadRef = useRef<GamepadInput | null>(null);
   const [status, setStatus] = useState<CoreStatus>("loading");
   const [statusText, setStatusText] = useState("Loading WebAssembly core…");
   const [romName, setRomName] = useState<string | null>(null);
   const [frame, setFrame] = useState<ImageData | null>(null);
+  const [audioSampleRate, setAudioSampleRate] = useState(0);
+  const [audioStatus, setAudioStatus] = useState<AudioStatus>("idle");
+  const [audioMessage, setAudioMessage] = useState(
+    "Audio starts when you press Play.",
+  );
+  const [audioStats, setAudioStats] = useState<AudioPlaybackStats | null>(
+    null,
+  );
+  const [gamepads, setGamepads] = useState<GamepadAssignment[]>([]);
+  const [gamepadSupported, setGamepadSupported] = useState(true);
 
   const handleEvent = useCallback((event: EmulatorEvent) => {
     switch (event.type) {
@@ -44,9 +66,19 @@ export function EmulatorShell() {
             paused: "Paused",
           }[event.status],
         );
+        if (event.status === "paused") {
+          void audioRef.current?.pause();
+        }
         break;
       case "romLoaded":
         setRomName(event.name);
+        setAudioSampleRate(event.audioSampleRate);
+        gamepadRef.current?.resync();
+        audioRef.current?.reset();
+        setAudioStatus("paused");
+        setAudioMessage(
+          `Ready for ${formatHertz(event.audioSampleRate)} stereo playback.`,
+        );
         setStatus("paused");
         setStatusText(`Loaded ${event.name} at ${event.fps.toFixed(2)} fps.`);
         break;
@@ -59,43 +91,76 @@ export function EmulatorShell() {
         setStatusText(`Captured a ${formatBytes(event.bytes.byteLength)} save state.`);
         break;
       case "error":
+        void audioRef.current?.pause();
+        setAudioStatus("error");
+        setAudioMessage("Audio stopped because the emulator reported an error.");
         setStatus("error");
         setStatusText(event.message);
         break;
       case "audio":
-        // AudioWorklet buffering is the next milestone. The typed message is
-        // intentionally present now so the worker/core boundary stays stable.
+        // Transferable PCM remains a compatibility fallback until Play
+        // configures the shared AudioWorklet ring buffer.
         break;
     }
   }, []);
 
   useEffect(() => {
+    const audio = new AudioPlayback();
     const client = new EmulatorClient(handleEvent);
+    const gamepad = new GamepadInput(client, setGamepads);
+    audioRef.current = audio;
     clientRef.current = client;
+    gamepadRef.current = gamepad;
+    const supportTimer = window.setTimeout(() => {
+      setGamepadSupported(typeof navigator.getGamepads === "function");
+    }, 0);
+    gamepad.start();
     return () => {
+      window.clearTimeout(supportTimer);
+      gamepad.destroy();
+      void audio.destroy();
       client.destroy();
+      gamepadRef.current = null;
+      audioRef.current = null;
       clientRef.current = null;
     };
   }, [handleEvent]);
+
+  useEffect(() => {
+    gamepadRef.current?.setEnabled(Boolean(romName));
+  }, [romName]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setAudioStats(audioRef.current?.getStats() ?? null);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const updateButton = (event: KeyboardEvent, pressed: boolean) => {
       const button = KEYBOARD_MAP[event.code];
       if (!button || !romName) return;
       event.preventDefault();
-      clientRef.current?.setButton(button, pressed);
+      clientRef.current?.setButton(button, pressed, 0, "keyboard");
     };
 
     const keyDown = (event: KeyboardEvent) => {
       if (!event.repeat) updateButton(event, true);
     };
     const keyUp = (event: KeyboardEvent) => updateButton(event, false);
+    const releaseKeyboard = () => {
+      clientRef.current?.clearInputSource("keyboard", 0);
+    };
 
     window.addEventListener("keydown", keyDown);
     window.addEventListener("keyup", keyUp);
+    window.addEventListener("blur", releaseKeyboard);
     return () => {
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
+      window.removeEventListener("blur", releaseKeyboard);
+      releaseKeyboard();
     };
   }, [romName]);
 
@@ -109,11 +174,50 @@ export function EmulatorShell() {
   const coreReady = status !== "loading" && status !== "error";
   const canControl = coreReady && Boolean(romName);
 
+  const prepareRomLoad = useCallback(() => {
+    void audioRef.current?.pause();
+    setAudioStatus("idle");
+    setAudioStats(null);
+    setAudioMessage("Audio starts when you press Play.");
+  }, []);
+
+  const handlePlay = useCallback(async () => {
+    const client = clientRef.current;
+    const audio = audioRef.current;
+    if (!client || !audio || !audioSampleRate) return;
+
+    setAudioStatus("starting");
+    setAudioMessage("Starting low-latency audio…");
+    try {
+      await audio.start(client, audioSampleRate);
+      setAudioStatus("playing");
+      setAudioMessage("AudioWorklet playback is active.");
+    } catch (error) {
+      setAudioStatus("error");
+      setAudioMessage(
+        error instanceof Error ? error.message : "Audio could not start.",
+      );
+    }
+    client.start();
+  }, [audioSampleRate]);
+
+  const handlePause = useCallback(() => {
+    clientRef.current?.pause();
+    void audioRef.current?.pause();
+    setAudioStatus("paused");
+    setAudioMessage("Audio paused.");
+  }, []);
+
+  const handleReset = useCallback(() => {
+    audioRef.current?.reset();
+    clientRef.current?.reset();
+  }, []);
+
   return (
     <section className="emulator-shell">
       <div className="shell-heading">
         <div>
-          <p className="eyebrow">Browser port · milestone zero</p>
+          <p className="eyebrow">Browser port · milestone one</p>
           <h1>Accuracy, carried into the browser.</h1>
           <p className="lede">
             The original bsnes C++ core runs in a dedicated worker. ROM bytes
@@ -139,31 +243,123 @@ export function EmulatorShell() {
 
           <RomPicker
             disabled={!coreReady}
-            onSelect={(file) => clientRef.current?.loadRom(file)}
+            onSelect={(file) => {
+              prepareRomLoad();
+              clientRef.current?.loadRom(file);
+            }}
+          />
+
+          <RomLibrary
+            disabled={!coreReady}
+            onSelect={(name, bytes) => {
+              prepareRomLoad();
+              clientRef.current?.loadRomBytes(name, bytes);
+            }}
           />
 
           <div className="button-row">
             <button
               type="button"
-              disabled={!canControl || status === "running"}
-              onClick={() => clientRef.current?.start()}
+              disabled={
+                !canControl ||
+                status === "running" ||
+                audioStatus === "starting"
+              }
+              onClick={() => void handlePlay()}
             >
               Play
             </button>
             <button
               type="button"
               disabled={!canControl || status !== "running"}
-              onClick={() => clientRef.current?.pause()}
+              onClick={handlePause}
             >
               Pause
             </button>
             <button
               type="button"
               disabled={!canControl}
-              onClick={() => clientRef.current?.reset()}
+              onClick={handleReset}
             >
               Reset
             </button>
+          </div>
+
+          <div className="audio-card">
+            <div className="audio-heading">
+              <p className="panel-label">Audio</p>
+              <span className={`audio-state audio-${audioStatus}`}>
+                {audioStatus}
+              </span>
+            </div>
+            <p className="audio-message" role="status">
+              {audioMessage}
+            </p>
+            {audioStats ? (
+              <dl className="audio-stats">
+                <div>
+                  <dt>Buffer</dt>
+                  <dd>
+                    {audioStats.bufferedMilliseconds.toFixed(0)} ms
+                  </dd>
+                </div>
+                <div>
+                  <dt>Drift correction</dt>
+                  <dd>{formatCorrection(audioStats.correctionPpm)}</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>
+                    {formatHertz(audioStats.outputSampleRate)} ·{" "}
+                    {audioStats.deviceLatencyMilliseconds.toFixed(0)} ms
+                  </dd>
+                </div>
+                <div>
+                  <dt>Underruns / overruns</dt>
+                  <dd>
+                    {audioStats.underruns} / {audioStats.overruns}
+                  </dd>
+                </div>
+              </dl>
+            ) : null}
+          </div>
+
+          <div className="controller-card">
+            <div className="controller-heading">
+              <p className="panel-label">Controllers</p>
+              <span className="controller-count">
+                {gamepads.length}/2 connected
+              </span>
+            </div>
+            {!gamepadSupported ? (
+              <p className="controller-message">
+                This browser does not expose the Gamepad API.
+              </p>
+            ) : gamepads.length ? (
+              <ol className="controller-assignments">
+                {gamepads.map((gamepad) => (
+                  <li key={gamepad.index}>
+                    <span className="controller-player">
+                      P{gamepad.player + 1}
+                    </span>
+                    <span
+                      className="controller-name"
+                      title={gamepad.id || `Controller ${gamepad.index + 1}`}
+                    >
+                      {gamepad.id || `Controller ${gamepad.index + 1}`}
+                    </span>
+                    <span className="controller-mapping">
+                      {gamepad.mapping === "standard" ? "Standard" : "Generic"}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="controller-message">
+                Connect a USB or Bluetooth controller, then press a button to
+                let the browser detect it.
+              </p>
+            )}
           </div>
 
           <div className="keyboard-card">
@@ -205,4 +401,13 @@ function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function formatHertz(sampleRate: number) {
+  return `${(sampleRate / 1000).toFixed(sampleRate % 1000 ? 1 : 0)} kHz`;
+}
+
+function formatCorrection(correctionPpm: number) {
+  if (!correctionPpm) return "0 ppm";
+  return `${correctionPpm > 0 ? "+" : ""}${correctionPpm} ppm`;
 }

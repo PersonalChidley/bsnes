@@ -14,5 +14,7 @@ generated WebAssembly binary. Those artifacts are built into
 
 The current build uses Emscripten fibers and Asyncify to implement bsnes'
 cooperative core threads. OpenMP and browser pthreads are deliberately disabled
-for the first milestone. See `docs/web-port.md` for the architecture, known
-risks, and next steps.
+for the first milestone. The target first compiled and linked with Emscripten
+6.0.5; a short Chrome smoke test loaded a ROM and produced a non-black 256×224
+frame. See `docs/web-port.md` for the architecture, remaining validation risks,
+and next steps.

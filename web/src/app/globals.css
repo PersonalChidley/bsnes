@@ -37,7 +37,8 @@ a {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -252,6 +253,83 @@ main {
   clip: rect(0, 0, 0, 0);
 }
 
+.rom-library {
+  display: grid;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.rom-library-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rom-library-heading span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.rom-library select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 34px 0 11px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface-raised);
+  cursor: pointer;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rom-library select:focus-visible,
+.library-load-button:focus-visible,
+.rom-picker:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rom-library select:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.library-load-button {
+  min-height: 39px;
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  color: var(--accent);
+  background: rgb(137 240 193 / 6%);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.library-load-button:hover:not(:disabled) {
+  background: rgb(137 240 193 / 12%);
+}
+
+.library-load-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.library-message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.library-message.is-error {
+  color: var(--danger);
+}
+
 .button-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -277,6 +355,133 @@ main {
 .button-row button:disabled {
   cursor: not-allowed;
   opacity: 0.38;
+}
+
+.audio-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 11px;
+  background: rgb(3 7 12 / 28%);
+}
+
+.audio-heading,
+.controller-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.audio-state {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.audio-playing {
+  color: var(--accent);
+}
+
+.audio-error {
+  color: var(--danger);
+}
+
+.audio-message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.audio-stats {
+  display: grid;
+  gap: 7px;
+  margin: 2px 0 0;
+}
+
+.audio-stats > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.7rem;
+}
+
+.audio-stats dt {
+  color: var(--muted);
+}
+
+.audio-stats dd {
+  margin: 0;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.controller-card {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 11px;
+  background: rgb(3 7 12 / 28%);
+}
+
+.controller-count,
+.controller-mapping {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.controller-message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.controller-assignments {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.controller-assignments li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.controller-player {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 1px solid rgb(137 240 193 / 28%);
+  border-radius: 7px;
+  color: var(--accent);
+  background: rgb(137 240 193 / 7%);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.controller-name {
+  overflow: hidden;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controller-mapping {
+  font-size: 0.58rem;
 }
 
 .keyboard-card {
@@ -343,6 +548,8 @@ footer p {
     grid-template-columns: 1fr 1fr;
   }
 
+  .audio-card,
+  .controller-card,
   .keyboard-card,
   .legal-note {
     grid-column: 1 / -1;
@@ -366,6 +573,8 @@ footer p {
     grid-template-columns: 1fr;
   }
 
+  .audio-card,
+  .controller-card,
   .keyboard-card,
   .legal-note {
     grid-column: auto;

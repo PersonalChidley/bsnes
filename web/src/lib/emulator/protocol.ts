@@ -33,6 +33,11 @@ export const SNES_BUTTON_ID: Record<SnesButton, number> = {
 export type EmulatorCommand =
   | { type: "init" }
   | { type: "loadRom"; name: string; bytes: ArrayBuffer }
+  | {
+      type: "configureAudio";
+      buffer: SharedArrayBuffer;
+      capacityFrames: number;
+    }
   | { type: "start" }
   | { type: "pause" }
   | { type: "reset" }
@@ -43,7 +48,12 @@ export type EmulatorCommand =
 
 export type EmulatorEvent =
   | { type: "status"; status: "loading" | "ready" | "running" | "paused" }
-  | { type: "romLoaded"; name: string; fps: number }
+  | {
+      type: "romLoaded";
+      name: string;
+      fps: number;
+      audioSampleRate: number;
+    }
   | {
       type: "frame";
       width: number;

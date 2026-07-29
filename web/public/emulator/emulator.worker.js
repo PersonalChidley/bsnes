@@ -1,5 +1,20 @@
 const RESULT_OK = 0;
 const CORE_MODULE_URL = new URL("./bsnes-core.mjs", import.meta.url);
+const AUDIO_RING = {
+  writeFrame: 0,
+  readFrame: 1,
+  underruns: 2,
+  overruns: 3,
+  active: 4,
+  epoch: 5,
+  correctionPpm: 6,
+  producedFrames: 7,
+  consumedFrames: 8,
+  headerLength: 10,
+  channels: 2,
+};
+const AUDIO_RING_HEADER_BYTES =
+  AUDIO_RING.headerLength * Int32Array.BYTES_PER_ELEMENT;
 
 let core = null;
 let initialized = false;
@@ -8,6 +23,7 @@ let running = false;
 let timer = null;
 let frameDuration = 1000 / 60;
 let nextFrameAt = 0;
+let audioRing = null;
 
 const post = (event, transfer = []) => self.postMessage(event, transfer);
 
@@ -69,8 +85,9 @@ const loadRom = async (name, bytes) => {
 
   gameLoaded = true;
   const fps = core._bsnes_web_frames_per_second();
+  const audioSampleRate = core._bsnes_web_audio_sample_rate();
   frameDuration = 1000 / (fps || 60);
-  post({ type: "romLoaded", name, fps });
+  post({ type: "romLoaded", name, fps, audioSampleRate });
   runFrame();
 };
 
@@ -103,10 +120,115 @@ const copyVideoFrame = () => {
   );
 };
 
-const copyAudioFrame = () => {
+const configureAudio = (buffer, capacityFrames) => {
+  if (!(buffer instanceof SharedArrayBuffer)) {
+    throw new Error("Audio configuration requires shared memory.");
+  }
+  if (!Number.isInteger(capacityFrames) || capacityFrames < 2) {
+    throw new Error("Audio configuration has an invalid capacity.");
+  }
+
+  const expectedBytes =
+    AUDIO_RING_HEADER_BYTES +
+    capacityFrames *
+      AUDIO_RING.channels *
+      Int16Array.BYTES_PER_ELEMENT;
+  if (buffer.byteLength !== expectedBytes) {
+    throw new Error("Audio configuration has an invalid buffer size.");
+  }
+
+  const header = new Int32Array(
+    buffer,
+    0,
+    AUDIO_RING.headerLength,
+  );
+  audioRing = {
+    capacityFrames,
+    header,
+    samples: new Int16Array(
+      buffer,
+      AUDIO_RING_HEADER_BYTES,
+      capacityFrames * AUDIO_RING.channels,
+    ),
+  };
+};
+
+const flushAudioRing = (deactivate = false) => {
+  if (!audioRing) return;
+  if (deactivate) {
+    Atomics.store(audioRing.header, AUDIO_RING.active, 0);
+  }
+  const writeFrame = Atomics.load(
+    audioRing.header,
+    AUDIO_RING.writeFrame,
+  );
+  Atomics.store(audioRing.header, AUDIO_RING.readFrame, writeFrame);
+  Atomics.add(audioRing.header, AUDIO_RING.epoch, 1);
+  Atomics.store(audioRing.header, AUDIO_RING.correctionPpm, 0);
+};
+
+const writeAudioRing = (pointer, frames) => {
+  if (
+    !audioRing ||
+    Atomics.load(audioRing.header, AUDIO_RING.active) === 0
+  ) {
+    return;
+  }
+
+  const writeFrame = Atomics.load(
+    audioRing.header,
+    AUDIO_RING.writeFrame,
+  ) >>> 0;
+  const readFrame = Atomics.load(
+    audioRing.header,
+    AUDIO_RING.readFrame,
+  ) >>> 0;
+  const availableFrames = Math.min(
+    (writeFrame - readFrame) >>> 0,
+    audioRing.capacityFrames,
+  );
+  const framesToWrite = Math.min(
+    frames,
+    audioRing.capacityFrames - availableFrames,
+  );
+  const source = core.HEAP16;
+  const sourceStart = pointer >> 1;
+
+  for (let frame = 0; frame < framesToWrite; frame += 1) {
+    const target =
+      ((writeFrame + frame) % audioRing.capacityFrames) *
+      AUDIO_RING.channels;
+    const sourceOffset = sourceStart + frame * AUDIO_RING.channels;
+    audioRing.samples[target] = source[sourceOffset];
+    audioRing.samples[target + 1] = source[sourceOffset + 1];
+  }
+
+  if (framesToWrite > 0) {
+    Atomics.store(
+      audioRing.header,
+      AUDIO_RING.writeFrame,
+      (writeFrame + framesToWrite) | 0,
+    );
+    Atomics.add(
+      audioRing.header,
+      AUDIO_RING.producedFrames,
+      framesToWrite,
+    );
+  }
+  if (framesToWrite < frames) {
+    Atomics.add(audioRing.header, AUDIO_RING.overruns, 1);
+  }
+};
+
+const publishAudioFrame = () => {
   const pointer = core._bsnes_web_audio_buffer();
   const frames = core._bsnes_web_audio_frames();
   if (!pointer || !frames) return;
+
+  if (audioRing) {
+    writeAudioRing(pointer, frames);
+    return;
+  }
 
   const samples = new Int16Array(frames * 2);
   samples.set(core.HEAP16.subarray(pointer >> 1, (pointer >> 1) + frames * 2));
@@ -129,7 +251,7 @@ const runFrame = () => {
     throw new Error(errorMessage("The core failed while running a frame."));
   }
   copyVideoFrame();
-  copyAudioFrame();
+  publishAudioFrame();
 };
 
 const scheduleNextFrame = () => {
@@ -169,6 +291,7 @@ const pause = () => {
   if (timer !== null) clearTimeout(timer);
   timer = null;
   running = false;
+  flushAudioRing(true);
   if (initialized) post({ type: "status", status: "paused" });
 };
 
@@ -218,6 +341,9 @@ self.addEventListener("message", async ({ data }) => {
       case "loadRom":
         await loadRom(data.name, data.bytes);
         break;
+      case "configureAudio":
+        configureAudio(data.buffer, data.capacityFrames);
+        break;
       case "start":
         start();
         break;
@@ -226,6 +352,7 @@ self.addEventListener("message", async ({ data }) => {
         break;
       case "reset":
         requireCore();
+        flushAudioRing();
         core._bsnes_web_reset();
         runFrame();
         break;
@@ -241,6 +368,7 @@ self.addEventListener("message", async ({ data }) => {
         saveState();
         break;
       case "loadState":
+        flushAudioRing();
         loadState(data.bytes);
         break;
       case "shutdown":

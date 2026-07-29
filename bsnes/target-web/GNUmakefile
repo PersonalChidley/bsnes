@@ -41,5 +41,5 @@ all: $(objects)
 	  -sINVOKE_RUN=0 \
 	  -sNO_EXIT_RUNTIME=1 \
 	  -sEXPORTED_FUNCTIONS=$(web.exports) \
-	  -sEXPORTED_RUNTIME_METHODS=UTF8ToString \
+	  -sEXPORTED_RUNTIME_METHODS=UTF8ToString,HEAPU8,HEAP16 \
 	  $(options))

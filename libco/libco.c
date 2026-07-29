@@ -1,6 +1,4 @@
-#if defined(__EMSCRIPTEN__)
-  #include "emscripten.c"
-#elif defined(__clang__)
+#if defined(__clang__) && !defined(__EMSCRIPTEN__)
   #pragma clang diagnostic ignored "-Wparentheses"
 
   /* placing code in section(text) does not mark it executable with Clang. */
@@ -8,7 +6,9 @@
   #define LIBCO_MPROTECT
 #endif
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__EMSCRIPTEN__)
+  #include "emscripten.c"
+#elif defined(__clang__) || defined(__GNUC__)
   #if defined(__i386__)
     #include "x86.c"
   #elif defined(__amd64__)

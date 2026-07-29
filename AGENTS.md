@@ -32,25 +32,37 @@ contract for future AI sessions.
 - `hiro/` and `ruby/` — native UI and audio/video/input drivers. They are not
   part of the browser build.
 - `web/` — Next.js App Router shell, worker protocol, canvas UI, and generated
-  core destination.
+  core destination. Its read-only local ROM routes scan `roms/snes/` during
+  development or `BSNES_ROM_LIBRARY_DIR` when explicitly configured.
 - `docs/` — native documentation and the browser-port engineering record.
 
 ## Browser architecture
 
 ```text
 Next.js UI (browser main thread)
+  -> read-only local ROM library route
+  -> keyboard and two-player Gamepad API input
   -> typed postMessage protocol
 Dedicated Web Worker
-  -> generated Emscripten ES module
-bsnes/target-web C ABI
-  -> existing target-libretro adapter
-Emulator::Platform / SuperFamicom::Interface
-  -> bsnes C++ core
+  |-> generated Emscripten ES module
+  |     -> bsnes/target-web C ABI
+  |     -> existing target-libretro adapter
+  |     -> Emulator::Platform / SuperFamicom::Interface
+  |     -> bsnes C++ core
+  `-> SharedArrayBuffer stereo PCM ring
+        -> AudioWorklet
+        -> browser audio device
 ```
 
 The worker owns the Wasm instance. Never run emulation frames on the browser
 main thread. Never transfer the Wasm memory buffer; copy video/audio/state data
 into transferable buffers because detaching Wasm memory breaks the module.
+Audio is the exception to per-frame copying: the worker copies core PCM into a
+dedicated SharedArrayBuffer ring, and the AudioWorklet reads that ring.
+Gamepad polling stays on the main thread and sends only aggregate SNES button
+state changes to the worker. Keep input separated by source so keyboard and
+controller releases cannot cancel each other; clear the affected source on
+focus loss or controller disconnect.
 
 The public ABI is declared in `bsnes/target-web/bridge.hpp`. Keep it small,
 C-compatible, versionable, and independent of React or browser DOM types.
@@ -58,21 +70,33 @@ Message names and payloads are defined in
 `web/src/lib/emulator/protocol.ts`. When either boundary changes, update both
 sides and `docs/web-port.md`.
 
+The local ROM library accepts only regular `.sfc` and `.smc` files and must
+never copy them into `web/public/`. Its `roms/snes/` default is
+development-only; production use requires `BSNES_ROM_LIBRARY_DIR` and must not
+expose the opted-in routes to untrusted clients.
+
 ## Current milestone
 
-Milestone zero is framework validation:
+Milestone one is first-frame and runtime validation:
 
 - the Next.js shell loads without generated core files and explains how to
   build them;
 - a dedicated worker can load the modularized Emscripten output;
+- the C++ target compiles and links with Emscripten 6.0.5;
 - the C ABI covers ROM load, one-frame execution, XRGB8888 video, stereo audio,
   two joypads, reset, and save states;
+- a Chrome smoke test with a user-provided ROM produced a non-black 256×224
+  frame and exercised play, pause, reset, and keyboard input;
+- an AudioWorklet consumes a SharedArrayBuffer PCM ring with sample-rate
+  conversion, bounded drift correction, and underrun/overrun metrics;
+- up to two browser gamepads are assigned to P1/P2 with standard-layout mapping
+  and analog directional fallback;
 - the native frontend remains unchanged.
 
-The shell is validated. The WebAssembly C++ target has not yet been compiled in
-this checkout because Emscripten and GNU Make are not installed in the current
-Windows environment. Do not claim the emulator runs in-browser until
-`npm run core:build` succeeds and a legally obtained test ROM produces frames.
+Do not generalize the short Chrome smoke test into broad compatibility. A
+documented public-domain reference ROM, state round-trip, sustained audible
+playback across real devices, physical controller validation, SRAM persistence,
+long-run stability, and additional browsers remain unvalidated.
 
 ## Build and validation commands
 
@@ -92,8 +116,12 @@ npm audit
 
 ### WebAssembly core
 
-Activate emsdk first so `em++` is available, and install GNU Make. Then run from
-`web/`:
+Activate emsdk first so `em++` is available, and install GNU Make. On Windows,
+`scripts/build-core.mjs` can instead use GNU Make in the default WSL
+distribution plus an activated emsdk checkout beside the repository (for
+example, `C:\DEV\emsdk` beside `C:\DEV\bsnes`). `BSNES_WSL_DISTRO`,
+`BSNES_WSL_EMSDK`, and `BSNES_WSL_NODE_BIN` override fallback discovery. Then
+run from `web/`:
 
 ```sh
 npm run core:build
@@ -148,9 +176,10 @@ Keep assistant-specific discovery files as thin pointers to the canonical
 - The libco Emscripten backend is non-serializable. Save states therefore use
   synchronized core serialization. Do not enable raw fiber-stack
   serialization.
-- Audio timing is not complete until an AudioWorklet/ring-buffer path is
-  implemented and measured for underruns and drift. Receiving PCM messages is
-  not sufficient proof of working audio.
+- Browser audio must stay on the AudioWorklet/SharedArrayBuffer ring-buffer
+  path. Pause, reset, state load, and ROM switching must flush stale samples.
+  Keep underrun, overrun, buffer-depth, and drift-correction metrics visible;
+  synthetic rendering alone is not proof of sustained audible playback.
 - Browser persistence must use explicit Emscripten FS/IndexedDB synchronization
   with error handling. Never imply SRAM is durable until reload tests pass.
 - Keep ROM bytes local. Do not add upload endpoints or telemetry containing ROM
