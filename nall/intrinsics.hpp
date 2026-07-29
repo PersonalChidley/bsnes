@@ -4,10 +4,10 @@ namespace nall {
   using uint = unsigned;
 
   enum class Compiler : uint { Clang, GCC, Microsoft, Unknown };
-  enum class Platform : uint { Windows, MacOS, Linux, BSD, Haiku, Android, Unknown };
+  enum class Platform : uint { Windows, MacOS, Linux, BSD, Haiku, Android, Web, Unknown };
   enum class API : uint { Windows, Posix, Unknown };
   enum class DisplayServer : uint { Windows, Quartz, Xorg, Unknown };
-  enum class Architecture : uint { x86, amd64, ARM32, ARM64, PPC32, PPC64, Unknown };
+  enum class Architecture : uint { x86, amd64, ARM32, ARM64, PPC32, PPC64, WASM32, WASM64, Unknown };
   enum class Endian : uint { LSB, MSB, Unknown };
   enum class Build : uint { Debug, Stable, Size, Release, Performance };
 
@@ -70,7 +70,14 @@ namespace nall {
 
 namespace nall {
 
-#if defined(_WIN32)
+#if defined(__EMSCRIPTEN__)
+  #define PLATFORM_WEB
+  #define API_POSIX
+  #define DISPLAY_UNKNOWN
+  constexpr auto platform() -> Platform { return Platform::Web; }
+  constexpr auto api() -> API { return API::Posix; }
+  constexpr auto display() -> DisplayServer { return DisplayServer::Unknown; }
+#elif defined(_WIN32)
   #define PLATFORM_WINDOWS
   #define API_WINDOWS
   #define DISPLAY_WINDOWS
@@ -128,7 +135,13 @@ namespace nall {
 
 namespace nall {
 
-#if defined(__i386__) || defined(_M_IX86)
+#if defined(__wasm64__)
+  #define ARCHITECTURE_WASM64
+  constexpr auto architecture() -> Architecture { return Architecture::WASM64; }
+#elif defined(__wasm32__)
+  #define ARCHITECTURE_WASM32
+  constexpr auto architecture() -> Architecture { return Architecture::WASM32; }
+#elif defined(__i386__) || defined(_M_IX86)
   #define ARCHITECTURE_X86
   constexpr auto architecture() -> Architecture { return Architecture::x86; }
 #elif defined(__amd64__) || defined(_M_AMD64)
@@ -184,7 +197,7 @@ namespace nall {
 #if  (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) \
   || (defined( _BYTE_ORDER) && defined( _LITTLE_ENDIAN) &&  _BYTE_ORDER ==  _LITTLE_ENDIAN) \
   || (defined(  BYTE_ORDER) && defined(  LITTLE_ENDIAN) &&   BYTE_ORDER ==   LITTLE_ENDIAN) \
-  || defined(__LITTLE_ENDIAN__) \
+  || defined(__LITTLE_ENDIAN__) || defined(__wasm__) \
   || defined(__i386__) || defined(__amd64__) \
   || defined(_M_IX86) || defined(_M_AMD64)
   #define ENDIAN_LSB

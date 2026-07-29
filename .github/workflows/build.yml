@@ -52,6 +52,25 @@ jobs:
         name: bsnes-freebsd
         path: bsnes/out/bsnes*
 
+  web-shell:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: npm
+        cache-dependency-path: web/package-lock.json
+    - name: Install dependencies
+      run: npm ci
+    - name: Validate browser shell
+      run: npm run check
+    - name: Audit dependencies
+      run: npm audit
+
   release:
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
     # Prevent multiple conflicting release jobs from running at once.
@@ -60,6 +79,7 @@ jobs:
     needs:
     - build
     - build-freebsd
+    - web-shell
     steps:
     - uses: actions/checkout@v4
       with:

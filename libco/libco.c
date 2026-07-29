@@ -1,4 +1,6 @@
-#if defined(__clang__)
+#if defined(__EMSCRIPTEN__)
+  #include "emscripten.c"
+#elif defined(__clang__)
   #pragma clang diagnostic ignored "-Wparentheses"
 
   /* placing code in section(text) does not mark it executable with Clang. */

@@ -1,74 +1,147 @@
-bsnes
-=====
+# bsnes
 
 ![bsnes logo](bsnes/target-bsnes/resource/logo.png)
 
-bsnes is a multi-platform Super Nintendo (Super Famicom) emulator, originally
-developed by Near, which focuses on performance,
-features, and ease of use.
+bsnes is a multi-platform Super Nintendo (Super Famicom) emulator originally
+developed by Near, with a focus on accuracy, performance, features, and ease of
+use.
 
-Unique Features
----------------
+This fork is beginning an experimental browser port. The emulation core remains
+in C/C++ and is compiled to WebAssembly; Next.js provides the application shell,
+canvas, file picker, input, and eventually browser persistence.
 
-  - True Super Game Boy emulation (using the SameBoy core by Lior Halphon)
-  - HD mode 7 graphics with optional supersampling (by DerKoun)
-  - Low-level emulation of all SNES coprocessors (DSP-n, ST-01n, Cx4)
-  - Multi-threaded PPU graphics renderer
-  - Speed mode settings which retain smooth audio output (50%, 75%, 100%, 150%, 200%)
-  - Built-in games database with thousands of game entries
-  - Built-in cheat code database for hundreds of popular games (by mightymo)
-  - Built-in save state manager with screenshot previews and naming capabilities
-  - Customizable per-byte game mappings to support any cartridges, including prototype games
-  - 7-zip decompression support
-  - Extensive Satellaview emulation, including BS Memory flash write and wear-leveling emulation
-  - Optional higan game folder support (standard game ROM files are also fully supported!)
-  - Advanced mapping system allowing multiple bindings to every emulated input
+## Project status
 
-Standard Features
------------------
+The native application and Libretro core remain the mature upstream products.
+The web port is at **milestone zero**:
 
-  - MSU1 support
-  - BPS and IPS soft-patching support
-  - Save states with undo and redo support (for reverting accidental saves and loads)
-  - OpenGL multi-pass pixel shaders
-  - Several built-in software filters, including HQ2x (by MaxSt) and snes_ntsc (by blargg)
-  - Adaptive sync and dynamic rate control for perfect audio/video synchronization
-  - Just-in-time input polling for minimal input latency
-  - Run-ahead support for removing internal game engine input latency
-  - Support for Direct3D exclusive mode video
-  - Support for WASAPI exclusive mode audio
-  - Periodic auto-saving of game saves
-  - Auto-saving of states when unloading games, and auto-resuming of states when reloading games
-  - Sprite limit disable support
-  - Cubic audio interpolation support
-  - Optional high-level emulation of most SNES coprocessors
-  - Optional emulation of flaws in older emulators for compatibility with older unofficial software
-  - CPU, SA1, and SuperFX overclocking support
-  - Frame advance support
-  - Screenshot support
-  - Cheat code search support
-  - Movie recording and playback support
-  - Rewind support
-  - HiDPI support
-  - Multi-monitor support
-  - Turbo support for controller inputs
+- a Next.js shell and dedicated emulator worker are implemented;
+- a small browser-facing C ABI wraps the existing Libretro adapter;
+- an Emscripten fiber backend has been added for bsnes' cooperative scheduler;
+- the shell passes lint, strict TypeScript checking, a production build, and a
+  clean npm audit;
+- the C++ WebAssembly target still needs its first Emscripten compile and
+  legal-ROM runtime test.
 
-Links
------
+See [the web-port engineering record](docs/web-port.md) for the detailed review,
+architecture, known risks, and milestones. AI contributors should also read
+[AGENTS.md](AGENTS.md).
 
-  - [Official git repository](https://github.com/bsnes-emu/bsnes)
-  - [Official Discord](https://discord.gg/B27hf27ZVf)
+## Architecture
 
-Nightly Builds
---------------
+```text
+Next.js UI
+  -> Dedicated Web Worker
+    -> Emscripten module
+      -> target-web C ABI
+        -> existing target-libretro adapter
+          -> Emulator::Platform
+            -> bsnes C++ core
+```
 
-  - [Windows](https://github.com/bsnes-emu/bsnes/releases/download/nightly/bsnes-windows.zip)
-  - [macOS](https://github.com/bsnes-emu/bsnes/releases/download/nightly/bsnes-macos.zip)
-  - [Linux](https://github.com/bsnes-emu/bsnes/releases/download/nightly/bsnes-ubuntu.zip)
-  - [FreeBSD](https://api.cirrus-ci.com/v1/artifact/github/bsnes-emu/bsnes/freebsd-x86_64-binaries/bsnes-nightly/bsnes-nightly.zip)
+This preserves the existing CPU, PPU, SMP/APU, cartridge, timing, and
+serialization implementations. The desktop frontend (`target-bsnes`, `hiro`,
+and `ruby`) is not linked into the browser build.
 
-Preview
--------
+## Run the web shell
+
+Requirements:
+
+- Node.js 20.9 or newer;
+- npm.
+
+```sh
+cd web
+npm install
+npm run dev
+```
+
+Open <http://localhost:3000>. Until the generated core exists, the shell will
+load normally and report the missing WebAssembly artifact.
+
+To build the core, activate a current Emscripten SDK and install GNU Make
+(MSYS2 on Windows), then run:
+
+```sh
+cd web
+npm run core:build
+npm run dev
+```
+
+Generated `bsnes-core.mjs` and `bsnes-core.wasm` files are intentionally ignored.
+No ROMs or console firmware are included.
+
+Validate the browser shell with:
+
+```sh
+cd web
+npm run check
+npm audit
+```
+
+## Build the native application
+
+Follow [Build From Source](docs/how-to/build-from-source.md) for platform
+prerequisites, then run:
+
+```sh
+make -C bsnes
+```
+
+Additional native build options are documented in
+[Build Configuration](docs/reference/build-config.md).
+
+## Repository guide
+
+- `bsnes/sfc/` — Super Famicom emulation core.
+- `bsnes/emulator/` — frontend-independent emulator interfaces.
+- `bsnes/target-bsnes/` — native desktop frontend.
+- `bsnes/target-libretro/` — Libretro frontend.
+- `bsnes/target-web/` — experimental WebAssembly bridge and build target.
+- `libco/` — cooperative threading backends.
+- `hiro/` and `ruby/` — native UI and platform drivers.
+- `web/` — Next.js browser shell and worker.
+- `docs/` — build, user, and porting documentation.
+
+## Highlights
+
+- True Super Game Boy emulation using SameBoy
+- HD Mode 7 graphics with optional supersampling
+- Low-level emulation of SNES coprocessors
+- Multi-threaded fast PPU renderer on supported native builds
+- Built-in game and cheat databases
+- Save states, rewind, run-ahead, movies, screenshots, and soft patches
+- MSU1, Satellaview, BS Memory, and Sufami Turbo support
+- OpenGL shaders and multiple software filters
+- Adaptive synchronization, dynamic rate control, and low-latency input
+- Native Windows, macOS, Linux, and FreeBSD frontends
+
+The complete feature set currently applies to native bsnes. Browser support will
+be enabled incrementally as each subsystem is compiled, tested, and documented.
+
+## Browser roadmap
+
+1. Compile the core and render the first correct frame.
+2. Validate continuous timing and keyboard/gamepad input.
+3. Add AudioWorklet playback with measured buffering and drift correction.
+4. Persist SRAM/RTC data and expose save-state import/export.
+5. Test enhancement chips, PAL/NTSC, multiple browsers, and long-run stability.
+6. Add settings, remapping, accessibility, mobile controls, and deployment.
+
+## Legal and licensing
+
+Use only ROM images and firmware you are legally entitled to use. ROMs, firmware,
+save files, and generated WebAssembly artifacts must not be committed.
+
+bsnes is licensed under GPLv3; see [GPLv3.txt](GPLv3.txt) and
+[LICENSE.txt](LICENSE.txt). Credits are in [CREDITS.md](CREDITS.md).
+
+## Upstream
+
+- [Official bsnes repository](https://github.com/bsnes-emu/bsnes)
+- [Official Discord](https://discord.gg/B27hf27ZVf)
+
+## Native preview
 
 ![bsnes user interface](.assets/user-interface.png)
 ![bsnes running Bahamut Lagoon](.assets/bahamut-lagoon.png)
