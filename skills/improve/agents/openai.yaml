@@ -1,0 +1,4 @@
+interface:
+  display_name: "Improve"
+  short_description: "Improve bsnes or assess repository health"
+  default_prompt: "Use $improve to improve bsnes and its browser port, or run it in assess mode for a read-only repository health review."

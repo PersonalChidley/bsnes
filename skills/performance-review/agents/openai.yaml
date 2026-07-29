@@ -1,0 +1,4 @@
+interface:
+  display_name: "Performance Review"
+  short_description: "Measure and explain repository performance risks"
+  default_prompt: "Use $performance-review to identify and prioritize measured performance risks in this repository."

@@ -119,6 +119,22 @@ make -C bsnes local=false
 For focused changes, run the narrowest relevant validation first, followed by
 the complete applicable command set before handoff.
 
+## Repository skills
+
+The canonical repository-owned AI workflows live under `skills/`. They are
+procedural guidance and always defer to this file. Invoke them by path when the
+assistant does not automatically discover project-local skills, for example:
+
+```text
+Read and follow skills/improve/SKILL.md in loop mode.
+Read and follow skills/security-review/SKILL.md in review mode.
+```
+
+Available workflows cover improvement coordination, security, performance,
+test coverage, documentation synchronization, and session-end release notes.
+Keep assistant-specific discovery files as thin pointers to the canonical
+`skills/<name>/SKILL.md`; do not duplicate workflow bodies.
+
 ## Engineering rules
 
 - Preserve upstream behavior. Prefer new frontend adapters over edits to

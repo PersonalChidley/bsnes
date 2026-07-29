@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Coverage Review"
+  short_description: "Map behavior risk to meaningful test evidence"
+  default_prompt: "Use $test-coverage-review to identify the highest-risk gaps in this repository's automated tests."

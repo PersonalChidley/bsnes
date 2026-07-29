@@ -1,0 +1,4 @@
+interface:
+  display_name: "Session Release Notes"
+  short_description: "Record meaningful bsnes session outcomes"
+  default_prompt: "Use $release-notes-on-session-end to write today's plain-language bsnes development notes."

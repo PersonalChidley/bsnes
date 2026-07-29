@@ -1,0 +1,4 @@
+interface:
+  display_name: "Documentation Sync"
+  short_description: "Reconcile documentation with repository truth"
+  default_prompt: "Use $documentation-sync to reconcile this repository's documentation with its current implementation."

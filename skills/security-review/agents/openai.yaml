@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Review"
+  short_description: "Review trust boundaries and verified security risks"
+  default_prompt: "Use $security-review to perform an evidence-backed security review of this repository."
