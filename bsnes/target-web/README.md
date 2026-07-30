@@ -10,7 +10,7 @@ API. It is intentionally limited to the first web-port milestone:
 
 The target does not include a ROM, firmware, generated JavaScript, or a
 generated WebAssembly binary. Those artifacts are built into
-`web/public/emulator/` by `npm run core:build` from the `web/` directory.
+`public/emulator/` by `npm run core:build` from the repository root.
 
 The current build uses Emscripten fibers and Asyncify to implement bsnes'
 cooperative core threads. OpenMP and browser pthreads are deliberately disabled

@@ -17,7 +17,7 @@ outputs must not be committed.
 
 ## Local ROM library
 
-In development, the shell scans `../roms/snes` and lists `.sfc` and `.smc`
+In development, the shell scans `roms/snes` and lists `.sfc` and `.smc`
 files in the cartridge panel. Selecting a game downloads it only from the local
 Next.js process to the browser, then transfers its bytes to the existing
 emulator worker. ROMs are not copied into `public/`.
@@ -30,7 +30,7 @@ $env:BSNES_ROM_LIBRARY_DIR = "D:\Games\SNES"
 npm run dev
 ```
 
-The automatic `../roms/snes` default is development-only. A production server
+The automatic `roms/snes` default is development-only. A production server
 must opt in with `BSNES_ROM_LIBRARY_DIR`. Do not expose an opted-in server to
 untrusted clients because its ROM routes serve files from that directory.
 
@@ -83,9 +83,24 @@ activated emsdk checkout beside the repository. Set `BSNES_WSL_DISTRO`,
 `BSNES_WSL_EMSDK`, or `BSNES_WSL_NODE_BIN` to override those locations.
 
 The command compiles `bsnes/target-web` and writes `bsnes-core.mjs` plus
-`bsnes-core.wasm` to `public/emulator/`. Run `make -C ../bsnes clean` before
+`bsnes-core.wasm` to `public/emulator/`. Run `make -C bsnes clean` before
 switching between native, Libretro, and web targets because the upstream build
 system shares its object directory.
+
+## Deploy to Vercel
+
+The application manifest and Next.js configuration are at the repository root,
+so no Vercel Root Directory override is needed. The checked-in `vercel.json`
+runs `npm run vercel:build`. On a clean deployment this command downloads and
+activates the pinned Emscripten 6.0.5 SDK under the ignored `.cache/` directory,
+builds the core into `public/emulator/`, and runs the Next.js production build.
+
+The Vercel build image provides Git and GNU Make; Python 3 is also required by
+the Emscripten SDK bootstrap. Generated core files remain ignored and are
+created only inside the deployment build. Production leaves the filesystem ROM
+library disabled, so users load ROMs with the browser file picker. The
+missing-core Linux bootstrap has been exercised locally through WSL, but the
+first connected Vercel deployment remains a required validation.
 
 ## Validate
 

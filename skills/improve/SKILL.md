@@ -52,7 +52,7 @@ to edit. Use `loop` when the user asks to improve or fix the repository.
   `docs/improvement-backlog.md`.
 - Inspect `git status` and identify pre-existing changes.
 - Run the narrow baseline for the selected area. For the browser shell, use
-  `npm run check` and `npm audit` from `web/`. Check for `em++` and GNU Make
+  `npm run check` and `npm audit` from the repository root. Check for `em++` and GNU Make
   before attempting `npm run core:build`.
 
 ### 2. Scan one focus area

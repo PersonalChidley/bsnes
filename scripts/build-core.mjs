@@ -3,11 +3,14 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const webDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const projectDirectory = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 const make = process.env.MAKE ?? "make";
 const makeArguments = [
   "-C",
-  "../bsnes",
+  "bsnes",
   "target=web",
   "binary=library",
   "platform=web",
@@ -15,18 +18,18 @@ const makeArguments = [
   "build=release",
   "openmp=false",
   "local=false",
-  "web.output=../web/public/emulator",
+  "web.output=../public/emulator",
 ];
 
 const compilerCheck = spawnSync("em++", ["--version"], {
-  cwd: webDirectory,
+  cwd: projectDirectory,
   encoding: "utf8",
   shell: process.platform === "win32",
 });
 
 if (compilerCheck.status === 0) {
   const result = spawnSync(make, makeArguments, {
-    cwd: webDirectory,
+    cwd: projectDirectory,
     stdio: "inherit",
     shell: process.platform === "win32",
   });
@@ -56,16 +59,15 @@ function buildWithWsl() {
   const distributionArguments = process.env.BSNES_WSL_DISTRO
     ? ["-d", process.env.BSNES_WSL_DISTRO]
     : [];
-  const wslWebDirectory = toWslPath(
+  const wslProjectDirectory = toWslPath(
     wsl,
     distributionArguments,
-    webDirectory,
+    projectDirectory,
   );
-  if (!wslWebDirectory) return null;
+  if (!wslProjectDirectory) return null;
 
   const defaultWindowsEmsdk = path.resolve(
-    webDirectory,
-    "..",
+    projectDirectory,
     "..",
     "emsdk",
   );
@@ -90,7 +92,7 @@ function buildWithWsl() {
     `export EMSDK=${shellQuote(wslEmsdk)}`,
     `export EMSDK_NODE=${shellQuote(`${wslNodeBin}/node`)}`,
     `export PATH=${shellQuote(`${wslEmsdk}/upstream/emscripten`)}:${shellQuote(wslNodeBin)}:/usr/bin:/bin`,
-    `cd ${shellQuote(wslWebDirectory)}`,
+    `cd ${shellQuote(wslProjectDirectory)}`,
     [make, ...makeArguments].map(shellQuote).join(" "),
   ].join(" && ");
 
@@ -104,7 +106,7 @@ function buildWithWsl() {
       command,
     ],
     {
-      cwd: webDirectory,
+      cwd: projectDirectory,
       stdio: "inherit",
     },
   );
@@ -123,7 +125,7 @@ function toWslPath(wsl, distributionArguments, windowsPath) {
       windowsPath.replaceAll("\\", "/"),
     ],
     {
-      cwd: webDirectory,
+      cwd: projectDirectory,
       encoding: "utf8",
     },
   );
@@ -136,7 +138,7 @@ function toWindowsPath(wsl, distributionArguments, wslPath) {
     wsl,
     [...distributionArguments, "--", "wslpath", "-w", wslPath],
     {
-      cwd: webDirectory,
+      cwd: projectDirectory,
       encoding: "utf8",
     },
   );

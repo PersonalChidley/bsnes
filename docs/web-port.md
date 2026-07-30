@@ -49,13 +49,13 @@ The important porting risks are:
 ## Implemented architecture
 
 ```text
-web/src/components/EmulatorShell.tsx
+src/components/EmulatorShell.tsx
   |
   |-> Gamepad API polling (P1/P2)
   |
   | EmulatorCommand / EmulatorEvent
   v
-web/public/emulator/emulator.worker.js
+public/emulator/emulator.worker.js
   |
   |-> Emscripten module exports
   |     -> bsnes/target-web/bridge.cpp
@@ -64,7 +64,7 @@ web/public/emulator/emulator.worker.js
   |     -> bsnes/sfc + bsnes/processor + bsnes/gb
   |
   `-> SharedArrayBuffer Int16 stereo PCM ring
-        -> web/public/emulator/audio-worklet.js
+        -> public/emulator/audio-worklet.js
         -> Float32 Web Audio output
         -> browser audio device
 ```
@@ -111,7 +111,7 @@ the browser main thread.
 
 ## Worker protocol
 
-The typed UI contract lives in `web/src/lib/emulator/protocol.ts`. The generated
+The typed UI contract lives in `src/lib/emulator/protocol.ts`. The generated
 Wasm module is owned by `emulator.worker.js`, which:
 
 1. dynamically imports `bsnes-core.mjs`;
@@ -178,7 +178,6 @@ with `BSNES_WSL_DISTRO`, `BSNES_WSL_EMSDK`, and `BSNES_WSL_NODE_BIN`.
 Browser shell:
 
 ```sh
-cd web
 npm ci
 npm run check
 ```
@@ -186,7 +185,6 @@ npm run check
 WebAssembly core:
 
 ```sh
-cd web
 npm run core:build
 npm run dev
 ```
@@ -194,13 +192,19 @@ npm run dev
 The core command invokes:
 
 ```sh
-make -C ../bsnes \
+make -C bsnes \
   target=web binary=library platform=web compiler=em++ \
   build=release openmp=false local=false \
-  web.output=../web/public/emulator
+  web.output=../public/emulator
 ```
 
-Generated files under `web/public/emulator/bsnes-core.*` are ignored.
+Generated files under `public/emulator/bsnes-core.*` are ignored.
+
+Vercel detects the root `package.json` and uses the build command in
+`vercel.json`. `npm run vercel:build` bootstraps the pinned Emscripten 6.0.5 SDK
+into `.cache/` when no compiler/core artifact is available, builds the core,
+and then runs Next.js. This keeps generated Wasm out of Git while allowing a
+normal Git-connected Vercel project to produce a playable deployment.
 
 ## Status as of 2026-07-29
 
@@ -210,6 +214,10 @@ Completed:
 - Emscripten libco backend;
 - browser C ABI and Emscripten link target;
 - modular Next.js shell;
+- root-level Next.js/Vercel project layout and reproducible deployment core
+  bootstrap;
+- Linux-side missing-core bootstrap through Emscripten activation, core
+  generation, and the root production build;
 - worker ownership and typed message protocol;
 - canvas rendering path and keyboard mapping;
 - ROM picker, play/pause/reset controls, and state protocol;
@@ -239,6 +247,7 @@ Not yet validated:
 - SRAM persistence;
 - save-state runtime round-trip;
 - physical USB/Bluetooth controller mapping and input behavior;
+- first remote deployment through the connected Vercel project;
 - mobile controls and multiple browsers.
 
 The original scaffold environment lacked `emcc`/`em++` and GNU Make. This

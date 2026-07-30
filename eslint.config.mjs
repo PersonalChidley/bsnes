@@ -7,6 +7,7 @@ export default defineConfig([
   ...nextTypeScript,
   globalIgnores([
     ".next/**",
+    "web/**",
     "out/**",
     "public/emulator/bsnes-core.*",
     "next-env.d.ts",

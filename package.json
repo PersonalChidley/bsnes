@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build",
-    "core:build": "node scripts/build-core.mjs"
+    "core:build": "node scripts/build-core.mjs",
+    "vercel:build": "node scripts/prepare-vercel-core.mjs && next build"
   },
   "dependencies": {
     "next": "16.2.12",

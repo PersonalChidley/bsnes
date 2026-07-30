@@ -60,7 +60,6 @@ Requirements:
 - npm.
 
 ```sh
-cd web
 npm install
 npm run dev
 ```
@@ -72,7 +71,6 @@ To build the core, activate a current Emscripten SDK and install GNU Make, then
 run:
 
 ```sh
-cd web
 npm run core:build
 npm run dev
 ```
@@ -83,16 +81,28 @@ ROMs and console firmware must not be committed.
 During local development, `.sfc` and `.smc` files stored in `roms/snes/` appear
 in the web cartridge panel. The directory is ignored by Git and its files are
 served only through the local Next.js process. See
-[`web/README.md`](web/README.md#local-rom-library) for configuration and
+[`docs/web-app.md`](docs/web-app.md#local-rom-library) for configuration and
 deployment precautions.
 
 Validate the browser shell with:
 
 ```sh
-cd web
 npm run check
 npm audit
 ```
+
+## Deploy to Vercel
+
+The Next.js application now lives at the repository root, so Vercel detects it
+without a Root Directory override. `vercel.json` runs `npm run vercel:build`,
+which installs the pinned Emscripten 6.0.5 SDK when needed, builds the ignored
+WebAssembly artifacts, and then builds Next.js. Connect the repository as a
+standard Next.js project and deploy from the root.
+
+Production does not expose `roms/snes/`. Players choose a local ROM file in the
+browser; ROM bytes remain in that browser session. The clean Linux bootstrap
+path has been exercised locally through WSL; the first remote Vercel deployment
+still needs validation in the connected project.
 
 ## Build the native application
 
@@ -115,7 +125,8 @@ Additional native build options are documented in
 - `bsnes/target-web/` — experimental WebAssembly bridge and build target.
 - `libco/` — cooperative threading backends.
 - `hiro/` and `ruby/` — native UI and platform drivers.
-- `web/` — Next.js browser shell and worker.
+- `src/`, `public/`, and `scripts/` — root-level Next.js browser shell, worker,
+  AudioWorklet, and browser build tooling.
 - `docs/` — build, user, and porting documentation.
 
 ## Highlights

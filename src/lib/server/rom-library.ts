@@ -23,7 +23,7 @@ export function getRomLibraryConfiguration(): RomLibraryConfiguration {
   if (process.env.NODE_ENV === "development") {
     return {
       enabled: true,
-      root: path.resolve(process.cwd(), "..", "roms", "snes"),
+      root: path.resolve(process.cwd(), "roms", "snes"),
     };
   }
 

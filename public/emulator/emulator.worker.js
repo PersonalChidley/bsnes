@@ -60,7 +60,7 @@ const loadCore = async () => {
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `WebAssembly core unavailable. Run \`npm run core:build\` in web/. ${detail}`,
+      `WebAssembly core unavailable. Run \`npm run core:build\` from the repository root. ${detail}`,
     );
   }
 };

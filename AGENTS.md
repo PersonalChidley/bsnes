@@ -31,9 +31,10 @@ contract for future AI sessions.
   Emscripten backend uses fibers plus Asyncify.
 - `hiro/` and `ruby/` — native UI and audio/video/input drivers. They are not
   part of the browser build.
-- `web/` — Next.js App Router shell, worker protocol, canvas UI, and generated
-  core destination. Its read-only local ROM routes scan `roms/snes/` during
-  development or `BSNES_ROM_LIBRARY_DIR` when explicitly configured.
+- `src/` — root-level Next.js App Router shell, worker protocol client, canvas
+  UI, and read-only local ROM routes.
+- `public/emulator/` — worker, AudioWorklet, and ignored generated core output.
+- `scripts/` — local/Vercel WebAssembly build orchestration.
 - `docs/` — native documentation and the browser-port engineering record.
 
 ## Browser architecture
@@ -67,11 +68,11 @@ focus loss or controller disconnect.
 The public ABI is declared in `bsnes/target-web/bridge.hpp`. Keep it small,
 C-compatible, versionable, and independent of React or browser DOM types.
 Message names and payloads are defined in
-`web/src/lib/emulator/protocol.ts`. When either boundary changes, update both
+`src/lib/emulator/protocol.ts`. When either boundary changes, update both
 sides and `docs/web-port.md`.
 
 The local ROM library accepts only regular `.sfc` and `.smc` files and must
-never copy them into `web/public/`. Its `roms/snes/` default is
+never copy them into `public/`. Its `roms/snes/` default is
 development-only; production use requires `BSNES_ROM_LIBRARY_DIR` and must not
 expose the opted-in routes to untrusted clients.
 
@@ -91,18 +92,21 @@ Milestone one is first-frame and runtime validation:
   conversion, bounded drift correction, and underrun/overrun metrics;
 - up to two browser gamepads are assigned to P1/P2 with standard-layout mapping
   and analog directional fallback;
+- the Next.js project lives at the repository root and `vercel.json` performs a
+  pinned Emscripten core build before the Vercel Next.js build;
 - the native frontend remains unchanged.
 
 Do not generalize the short Chrome smoke test into broad compatibility. A
 documented public-domain reference ROM, state round-trip, sustained audible
 playback across real devices, physical controller validation, SRAM persistence,
-long-run stability, and additional browsers remain unvalidated.
+long-run stability, the first remote Vercel deployment, and additional browsers
+remain unvalidated.
 
 ## Build and validation commands
 
 ### Browser shell
 
-Run from `web/`:
+Run from the repository root:
 
 ```sh
 npm ci
@@ -121,7 +125,7 @@ Activate emsdk first so `em++` is available, and install GNU Make. On Windows,
 distribution plus an activated emsdk checkout beside the repository (for
 example, `C:\DEV\emsdk` beside `C:\DEV\bsnes`). `BSNES_WSL_DISTRO`,
 `BSNES_WSL_EMSDK`, and `BSNES_WSL_NODE_BIN` override fallback discovery. Then
-run from `web/`:
+run from the repository root:
 
 ```sh
 npm run core:build
@@ -129,7 +133,9 @@ npm run dev
 ```
 
 The generated `bsnes-core.mjs` and `bsnes-core.wasm` belong in
-`web/public/emulator/` and must not be committed.
+`public/emulator/` and must not be committed. Vercel runs
+`scripts/prepare-vercel-core.mjs`, which installs the pinned Emscripten 6.0.5
+SDK in `.cache/` when the core is absent, before invoking the production build.
 
 The upstream makefiles share `bsnes/obj/` between targets. Run
 `make -C bsnes clean` before switching between native, Libretro, and web builds,
@@ -210,7 +216,7 @@ Before finishing a web-port change:
 
 1. Check `git status` and keep unrelated user changes untouched.
 2. Update both sides of any worker or C ABI change.
-3. Run `npm run check` and `npm audit` in `web/`.
+3. Run `npm run check` and `npm audit` from the repository root.
 4. If Emscripten is available, run `npm run core:build`.
 5. For runtime changes, test ROM load, frame output, pause/resume, reset, input,
    and state round-trip with a legal test ROM.
