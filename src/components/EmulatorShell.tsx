@@ -12,8 +12,21 @@ import {
   type GamepadAssignment,
 } from "@/lib/emulator/gamepad";
 import type { EmulatorEvent, SnesButton } from "@/lib/emulator/protocol";
+import {
+  DEFAULT_VIDEO_SETTINGS,
+  loadVideoSettings,
+  saveVideoSettings,
+  VIDEO_FILTERS,
+  type VideoAspect,
+  type VideoFilterId,
+  type VideoScale,
+  type VideoSettings,
+} from "@/lib/emulator/video";
 
-import { EmulatorCanvas } from "./EmulatorCanvas";
+import {
+  EmulatorCanvas,
+  type EmulatorCanvasHandle,
+} from "./EmulatorCanvas";
 import { RomLibrary } from "./RomLibrary";
 import { RomPicker } from "./RomPicker";
 
@@ -39,6 +52,8 @@ export function EmulatorShell() {
   const clientRef = useRef<EmulatorClient | null>(null);
   const audioRef = useRef<AudioPlayback | null>(null);
   const gamepadRef = useRef<GamepadInput | null>(null);
+  const canvasRef = useRef<EmulatorCanvasHandle | null>(null);
+  const configuredVideoRef = useRef<string | null>(null);
   const [status, setStatus] = useState<CoreStatus>("loading");
   const [statusText, setStatusText] = useState("Loading WebAssembly core…");
   const [romName, setRomName] = useState<string | null>(null);
@@ -53,6 +68,11 @@ export function EmulatorShell() {
   );
   const [gamepads, setGamepads] = useState<GamepadAssignment[]>([]);
   const [gamepadSupported, setGamepadSupported] = useState(true);
+  const [videoSettings, setVideoSettings] = useState<VideoSettings>(
+    DEFAULT_VIDEO_SETTINGS,
+  );
+  const [videoSettingsLoaded, setVideoSettingsLoaded] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const handleEvent = useCallback((event: EmulatorEvent) => {
     switch (event.type) {
@@ -129,6 +149,30 @@ export function EmulatorShell() {
   useEffect(() => {
     gamepadRef.current?.setEnabled(Boolean(romName));
   }, [romName]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setVideoSettings(loadVideoSettings());
+      setVideoSettingsLoaded(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!videoSettingsLoaded) return;
+    saveVideoSettings(videoSettings);
+    if (status !== "loading" && status !== "error") {
+      const serialized = JSON.stringify({
+        filter: videoSettings.filter,
+        overscan: videoSettings.overscan,
+        hiresBlur: videoSettings.hiresBlur,
+      });
+      if (configuredVideoRef.current !== serialized) {
+        configuredVideoRef.current = serialized;
+        clientRef.current?.configureVideo(videoSettings);
+      }
+    }
+  }, [status, videoSettings, videoSettingsLoaded]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -229,7 +273,12 @@ export function EmulatorShell() {
 
       <div className="emulator-grid">
         <div>
-          <EmulatorCanvas frame={frame} />
+          <EmulatorCanvas
+            ref={canvasRef}
+            frame={frame}
+            settings={videoSettings}
+            onFullscreenChange={setFullscreen}
+          />
           <p className="status-message" role={status === "error" ? "alert" : "status"}>
             {statusText}
           </p>
@@ -283,6 +332,103 @@ export function EmulatorShell() {
             >
               Reset
             </button>
+          </div>
+
+          <div className="video-card">
+            <div className="video-heading">
+              <p className="panel-label">Video</p>
+              <button
+                className="video-fullscreen-button"
+                type="button"
+                onClick={() => void canvasRef.current?.toggleFullscreen()}
+              >
+                {fullscreen ? "Exit fullscreen" : "Fullscreen"}
+              </button>
+            </div>
+
+            <label className="video-field">
+              <span>bsnes filter</span>
+              <select
+                value={videoSettings.filter}
+                onChange={(event) => {
+                  setVideoSettings((current) => ({
+                    ...current,
+                    filter: Number(event.target.value) as VideoFilterId,
+                  }));
+                }}
+              >
+                {VIDEO_FILTERS.map((filter) => (
+                  <option key={filter.id} value={filter.id}>
+                    {filter.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="video-field-row">
+              <label className="video-field">
+                <span>Aspect</span>
+                <select
+                  value={videoSettings.aspect}
+                  onChange={(event) => {
+                    setVideoSettings((current) => ({
+                      ...current,
+                      aspect: event.target.value as VideoAspect,
+                    }));
+                  }}
+                >
+                  <option value="corrected">Corrected</option>
+                  <option value="square">Square pixels</option>
+                  <option value="4:3">4:3</option>
+                </select>
+              </label>
+              <label className="video-field">
+                <span>Scaling</span>
+                <select
+                  value={videoSettings.scale}
+                  onChange={(event) => {
+                    setVideoSettings((current) => ({
+                      ...current,
+                      scale: event.target.value as VideoScale,
+                    }));
+                  }}
+                >
+                  <option value="fit">Fit</option>
+                  <option value="integer">Integer</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="video-toggle">
+              <input
+                type="checkbox"
+                checked={videoSettings.overscan}
+                onChange={(event) => {
+                  setVideoSettings((current) => ({
+                    ...current,
+                    overscan: event.target.checked,
+                  }));
+                }}
+              />
+              <span>Show overscan area</span>
+            </label>
+            <label className="video-toggle">
+              <input
+                type="checkbox"
+                checked={videoSettings.hiresBlur}
+                onChange={(event) => {
+                  setVideoSettings((current) => ({
+                    ...current,
+                    hiresBlur: event.target.checked,
+                  }));
+                }}
+              />
+              <span>Hires blur emulation</span>
+            </label>
+            <p className="video-message">
+              Software filters run in the bsnes core on the next emulated
+              frame. Display preferences stay in this browser.
+            </p>
           </div>
 
           <div className="audio-card">

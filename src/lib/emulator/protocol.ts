@@ -1,3 +1,5 @@
+import type { VideoFilterId } from "./video";
+
 export const SNES_BUTTONS = [
   "b",
   "y",
@@ -41,6 +43,12 @@ export type EmulatorCommand =
   | { type: "start" }
   | { type: "pause" }
   | { type: "reset" }
+  | {
+      type: "configureVideo";
+      filter: VideoFilterId;
+      overscan: boolean;
+      hiresBlur: boolean;
+    }
   | { type: "setButton"; player: number; button: number; pressed: boolean }
   | { type: "saveState" }
   | { type: "loadState"; bytes: ArrayBuffer }

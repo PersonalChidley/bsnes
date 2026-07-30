@@ -67,6 +67,22 @@ Controller remapping is not implemented yet. Keyboard and controller state is
 combined, and focus loss or disconnection releases that input source to avoid
 stuck buttons.
 
+## Video presentation
+
+The Video card exposes the software filters already shipped with bsnes:
+scanlines, Pixellate2x, Scale2x, 2xSaI variants, Super Eagle, LQ2x, HQ2x, and
+the RF/composite/S-Video/RGB NTSC filters. These run inside the C++ core in the
+emulator worker; the browser does not reimplement them.
+
+Aspect correction, fit/integer scaling, and fullscreen presentation are applied
+to the canvas on the main thread. Show Overscan and Hires Blur configure the
+existing core behavior. Preferences are saved in local browser storage and do
+not contain ROM information.
+
+The desktop OpenGL `.shader` presets use a native multi-pass shader format and
+are not yet available in the web shell. Porting them requires a WebGL renderer
+and an explicit preset compatibility layer.
+
 ## Build the core
 
 Activate a current Emscripten SDK and make sure `em++` and GNU Make are on

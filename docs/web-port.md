@@ -102,6 +102,7 @@ supports:
 - query framebuffer pointer, width, height, and pitch;
 - query interleaved stereo audio and timing;
 - set two-player joypad state;
+- select the original software video filters and configure overscan/hires blur;
 - save/load synchronized emulator states;
 - retrieve a diagnostic error message.
 
@@ -125,6 +126,26 @@ Wasm module is owned by `emulator.worker.js`, which:
 The current frame timer remains a prototype. AudioWorklet drift correction
 protects device playback from small timing differences, but a future scheduler
 should make audio-buffer demand the timing authority and have video follow it.
+
+## Video presentation
+
+Video settings are split at the same core/frontend boundary as native bsnes.
+The worker passes software-filter, overscan, and hires-blur changes through the
+C ABI and Libretro environment-variable seam. The filter output is produced by
+the existing `bsnes/filter/` C++ implementations, not TypeScript. The available
+presets are None, three scanline strengths, Pixellate2x, Scale2x, 2xSaI,
+Super 2xSaI, Super Eagle, LQ2x, HQ2x, and four NTSC variants.
+
+Canvas aspect correction, fit/integer scaling, and the Fullscreen API remain
+browser presentation concerns. The UI persists those preferences, along with
+the core-facing selections, in localStorage without storing ROM metadata.
+Core-facing changes apply on the next emulated frame so changing presentation
+settings never advances a paused game.
+
+The native `shaders/` presets are multi-pass desktop OpenGL pipelines. They are
+not treated as equivalent to the software filters and have not been ported.
+Supporting them requires a WebGL renderer plus a manifest/uniform compatibility
+layer and separate performance validation.
 
 ## Audio pipeline
 
@@ -235,6 +256,11 @@ Completed:
 - SharedArrayBuffer stereo audio ring and AudioWorklet playback path;
 - sample-rate conversion, bounded drift correction, and live xrun metrics;
 - Chrome synthetic AudioWorklet render with non-zero output energy;
+- fullscreen plus corrected/square/4:3 aspect and fit/integer scaling controls;
+- original bsnes software-filter selection, overscan, and hires-blur controls;
+- production Chrome smoke with a generated synthetic public-domain ROM:
+  unfiltered 256x224, HQ2x 512x448, overscan 256x240, fullscreen active, and
+  persisted display settings;
 - lint, strict TypeScript, production Next.js build, and npm audit.
 
 Not yet validated:
@@ -247,6 +273,8 @@ Not yet validated:
 - SRAM persistence;
 - save-state runtime round-trip;
 - physical USB/Bluetooth controller mapping and input behavior;
+- native OpenGL shader preset compatibility and software-filter parity/performance
+  across real games;
 - first remote deployment through the connected Vercel project;
 - mobile controls and multiple browsers.
 
@@ -285,8 +313,9 @@ fallback on Windows.
    - test enhancement chips and PAL/NTSC;
    - profile core size, memory, fast PPU, Asyncify cost, and browser coverage.
 6. **Product polish**
-   - settings, controller remapping, accessibility, mobile controls, and
-     deployment monitoring;
+   - [x] add initial video settings and fullscreen presentation;
+   - add WebGL shader presets, controller remapping, accessibility, mobile
+     controls, and deployment monitoring;
    - only then evaluate Wasm pthreads/OpenMP and production hosting.
 
 ## Runtime acceptance criteria

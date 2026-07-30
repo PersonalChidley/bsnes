@@ -22,6 +22,8 @@ web.exports := $(web.exports),_bsnes_web_frame_width,_bsnes_web_frame_height,_bs
 web.exports := $(web.exports),_bsnes_web_audio_buffer,_bsnes_web_audio_frames
 web.exports := $(web.exports),_bsnes_web_frames_per_second,_bsnes_web_audio_sample_rate
 web.exports := $(web.exports),_bsnes_web_set_button
+web.exports := $(web.exports),_bsnes_web_set_video_filter
+web.exports := $(web.exports),_bsnes_web_set_overscan,_bsnes_web_set_hires_blur
 web.exports := $(web.exports),_bsnes_web_state_size,_bsnes_web_save_state,_bsnes_web_load_state
 web.exports := $(web.exports),_bsnes_web_last_error
 

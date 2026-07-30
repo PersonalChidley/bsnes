@@ -33,6 +33,10 @@ std::vector<int16_t> audioBuffer;
 double framesPerSecond = 60.0;
 double audioSampleRate = 48000.0;
 std::string lastError;
+std::string videoFilter = "None";
+bool showOverscan = false;
+bool hiresBlur = false;
+bool variablesUpdated = false;
 
 auto setError(const char* message) -> int {
   lastError = message;
@@ -62,9 +66,26 @@ auto environment(unsigned command, void* data) -> bool {
   case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
     *static_cast<const char**>(data) = systemDirectory;
     return true;
-  case RETRO_ENVIRONMENT_GET_VARIABLE:
-    return false;  //Use the core's built-in defaults for the first milestone.
+  case RETRO_ENVIRONMENT_GET_VARIABLE: {
+    auto* variable = static_cast<retro_variable*>(data);
+    if(!std::strcmp(variable->key, "bsnes_video_filter")) {
+      variable->value = videoFilter.c_str();
+      return true;
+    }
+    if(!std::strcmp(variable->key, "bsnes_ppu_show_overscan")) {
+      variable->value = showOverscan ? "ON" : "OFF";
+      return true;
+    }
+    if(!std::strcmp(variable->key, "bsnes_blur_emulation")) {
+      variable->value = hiresBlur ? "ON" : "OFF";
+      return true;
+    }
+    return false;
+  }
   case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
+    *static_cast<bool*>(data) = variablesUpdated;
+    variablesUpdated = false;
+    return true;
   case RETRO_ENVIRONMENT_GET_FASTFORWARDING:
     *static_cast<bool*>(data) = false;
     return true;
@@ -245,6 +266,41 @@ BSNES_WEB_EXPORT double bsnes_web_audio_sample_rate(void) {
 BSNES_WEB_EXPORT void bsnes_web_set_button(uint32_t player, uint32_t button, int pressed) {
   if(player >= 2 || button >= 16) return;
   buttons[player][button] = pressed != 0;
+}
+
+BSNES_WEB_EXPORT int bsnes_web_set_video_filter(uint32_t filter) {
+  static const char* filters[] = {
+    "None",
+    "Scanlines (66%)",
+    "Scanlines (33%)",
+    "Scanlines (0%)",
+    "Pixellate2x",
+    "Scale2x",
+    "2xSaI",
+    "Super 2xSaI",
+    "Super Eagle",
+    "LQ2x",
+    "HQ2x",
+    "NTSC (RF)",
+    "NTSC (Composite)",
+    "NTSC (S-Video)",
+    "NTSC (RGB)",
+  };
+
+  if(filter >= sizeof(filters) / sizeof(filters[0])) return BSNES_WEB_INVALID_ARGUMENT;
+  videoFilter = filters[filter];
+  variablesUpdated = true;
+  return BSNES_WEB_OK;
+}
+
+BSNES_WEB_EXPORT void bsnes_web_set_overscan(int enabled) {
+  showOverscan = enabled != 0;
+  variablesUpdated = true;
+}
+
+BSNES_WEB_EXPORT void bsnes_web_set_hires_blur(int enabled) {
+  hiresBlur = enabled != 0;
+  variablesUpdated = true;
 }
 
 BSNES_WEB_EXPORT size_t bsnes_web_state_size(void) {

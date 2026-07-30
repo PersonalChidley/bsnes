@@ -295,6 +295,46 @@ static void flush_variables()
 			program->filterRender = &Filter::None::render;
 			program->filterSize = &Filter::None::size;
 		}
+		else if (strcmp(variable.value, "Scanlines (66%)") == 0) {
+			program->filterRender = &Filter::ScanlinesLight::render;
+			program->filterSize = &Filter::ScanlinesLight::size;
+		}
+		else if (strcmp(variable.value, "Scanlines (33%)") == 0) {
+			program->filterRender = &Filter::ScanlinesDark::render;
+			program->filterSize = &Filter::ScanlinesDark::size;
+		}
+		else if (strcmp(variable.value, "Scanlines (0%)") == 0) {
+			program->filterRender = &Filter::ScanlinesBlack::render;
+			program->filterSize = &Filter::ScanlinesBlack::size;
+		}
+		else if (strcmp(variable.value, "Pixellate2x") == 0) {
+			program->filterRender = &Filter::Pixellate2x::render;
+			program->filterSize = &Filter::Pixellate2x::size;
+		}
+		else if (strcmp(variable.value, "Scale2x") == 0) {
+			program->filterRender = &Filter::Scale2x::render;
+			program->filterSize = &Filter::Scale2x::size;
+		}
+		else if (strcmp(variable.value, "2xSaI") == 0) {
+			program->filterRender = &Filter::_2xSaI::render;
+			program->filterSize = &Filter::_2xSaI::size;
+		}
+		else if (strcmp(variable.value, "Super 2xSaI") == 0) {
+			program->filterRender = &Filter::Super2xSaI::render;
+			program->filterSize = &Filter::Super2xSaI::size;
+		}
+		else if (strcmp(variable.value, "Super Eagle") == 0) {
+			program->filterRender = &Filter::SuperEagle::render;
+			program->filterSize = &Filter::SuperEagle::size;
+		}
+		else if (strcmp(variable.value, "LQ2x") == 0) {
+			program->filterRender = &Filter::LQ2x::render;
+			program->filterSize = &Filter::LQ2x::size;
+		}
+		else if (strcmp(variable.value, "HQ2x") == 0) {
+			program->filterRender = &Filter::HQ2x::render;
+			program->filterSize = &Filter::HQ2x::size;
+		}
 		else if (strcmp(variable.value, "NTSC (RF)") == 0) {
 			program->filterRender = &Filter::NTSC_RF::render;
 			program->filterSize = &Filter::NTSC_RF::size;

@@ -5,6 +5,7 @@ import {
   type EmulatorEvent,
   type SnesButton,
 } from "./protocol";
+import type { VideoSettings } from "./video";
 
 type EventHandler = (event: EmulatorEvent) => void;
 
@@ -52,6 +53,15 @@ export class EmulatorClient {
 
   reset() {
     this.send({ type: "reset" });
+  }
+
+  configureVideo(settings: VideoSettings) {
+    this.send({
+      type: "configureVideo",
+      filter: settings.filter,
+      overscan: settings.overscan,
+      hiresBlur: settings.hiresBlur,
+    });
   }
 
   setButton(

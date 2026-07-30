@@ -25,12 +25,15 @@ The web port is in **first-frame validation**:
   live buffer, drift, and underrun/overrun metrics;
 - the browser polls up to two USB or Bluetooth game controllers through the
   Gamepad API, with standard-layout mapping and analog directional fallback;
+- fullscreen, aspect correction, fit/integer scaling, overscan, hires blur, and
+  the original bsnes software-filter presets are exposed in the browser;
 - the shell passes lint, strict TypeScript checking, a production build, and a
   clean npm audit.
 
 Sustained audible playback across real devices, durable SRAM, long-run
 stability, physical controller compatibility, save-state round trips, and a
-documented public-domain reference ROM remain to be validated.
+documented public-domain reference ROM remain to be validated. The native
+OpenGL shader preset pipeline has not yet been adapted to browser WebGL.
 
 See [the web-port engineering record](docs/web-port.md) for the detailed review,
 architecture, known risks, and milestones. AI contributors should also read
@@ -152,7 +155,8 @@ be enabled incrementally as each subsystem is compiled, tested, and documented.
 3. Validate AudioWorklet playback, buffering, and drift across real devices.
 4. Persist SRAM/RTC data and expose save-state import/export.
 5. Test enhancement chips, PAL/NTSC, multiple browsers, and long-run stability.
-6. Add settings, remapping, accessibility, mobile controls, and deployment.
+6. Expand settings with WebGL shaders, remapping, accessibility, mobile
+   controls, and deployment.
 
 ## Legal and licensing
 

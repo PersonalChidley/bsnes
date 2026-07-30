@@ -6,6 +6,7 @@ API. It is intentionally limited to the first web-port milestone:
 - load an in-memory `.sfc`/`.smc` ROM through Emscripten's MEMFS;
 - run exactly one emulated frame per call;
 - expose XRGB8888 video, stereo PCM audio, and two joypads;
+- configure the existing software filters, overscan, and hires blur;
 - reset and serialize/unserialize emulator state.
 
 The target does not include a ROM, firmware, generated JavaScript, or a

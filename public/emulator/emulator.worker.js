@@ -254,6 +254,16 @@ const runFrame = () => {
   publishAudioFrame();
 };
 
+const configureVideo = ({ filter, overscan, hiresBlur }) => {
+  requireCore();
+  const result = core._bsnes_web_set_video_filter(filter);
+  if (result !== RESULT_OK) {
+    throw new Error("The selected video filter is not supported.");
+  }
+  core._bsnes_web_set_overscan(overscan ? 1 : 0);
+  core._bsnes_web_set_hires_blur(hiresBlur ? 1 : 0);
+};
+
 const scheduleNextFrame = () => {
   if (!running) return;
   const delay = Math.max(0, nextFrameAt - performance.now());
@@ -355,6 +365,9 @@ self.addEventListener("message", async ({ data }) => {
         flushAudioRing();
         core._bsnes_web_reset();
         runFrame();
+        break;
+      case "configureVideo":
+        configureVideo(data);
         break;
       case "setButton":
         requireCore();

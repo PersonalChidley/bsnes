@@ -34,6 +34,24 @@ enum BsnesWebButton {
   BSNES_WEB_BUTTON_R = 11
 };
 
+enum BsnesWebVideoFilter {
+  BSNES_WEB_VIDEO_FILTER_NONE = 0,
+  BSNES_WEB_VIDEO_FILTER_SCANLINES_LIGHT = 1,
+  BSNES_WEB_VIDEO_FILTER_SCANLINES_DARK = 2,
+  BSNES_WEB_VIDEO_FILTER_SCANLINES_BLACK = 3,
+  BSNES_WEB_VIDEO_FILTER_PIXELLATE_2X = 4,
+  BSNES_WEB_VIDEO_FILTER_SCALE_2X = 5,
+  BSNES_WEB_VIDEO_FILTER_2XSAI = 6,
+  BSNES_WEB_VIDEO_FILTER_SUPER_2XSAI = 7,
+  BSNES_WEB_VIDEO_FILTER_SUPER_EAGLE = 8,
+  BSNES_WEB_VIDEO_FILTER_LQ2X = 9,
+  BSNES_WEB_VIDEO_FILTER_HQ2X = 10,
+  BSNES_WEB_VIDEO_FILTER_NTSC_RF = 11,
+  BSNES_WEB_VIDEO_FILTER_NTSC_COMPOSITE = 12,
+  BSNES_WEB_VIDEO_FILTER_NTSC_SVIDEO = 13,
+  BSNES_WEB_VIDEO_FILTER_NTSC_RGB = 14
+};
+
 int bsnes_web_init(void);
 void bsnes_web_shutdown(void);
 
@@ -53,6 +71,9 @@ double bsnes_web_frames_per_second(void);
 double bsnes_web_audio_sample_rate(void);
 
 void bsnes_web_set_button(uint32_t player, uint32_t button, int pressed);
+int bsnes_web_set_video_filter(uint32_t filter);
+void bsnes_web_set_overscan(int enabled);
+void bsnes_web_set_hires_blur(int enabled);
 
 size_t bsnes_web_state_size(void);
 int bsnes_web_save_state(uint8_t* output, size_t capacity);

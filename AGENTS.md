@@ -60,6 +60,10 @@ main thread. Never transfer the Wasm memory buffer; copy video/audio/state data
 into transferable buffers because detaching Wasm memory breaks the module.
 Audio is the exception to per-frame copying: the worker copies core PCM into a
 dedicated SharedArrayBuffer ring, and the AudioWorklet reads that ring.
+Software video filters, overscan, and hires blur stay in the C++/worker path.
+Aspect correction, fit/integer scaling, and fullscreen are canvas presentation
+concerns on the main thread. Do not describe the native multi-pass OpenGL shader
+presets as ported until a browser WebGL compatibility layer exists.
 Gamepad polling stays on the main thread and sends only aggregate SNES button
 state changes to the worker. Keep input separated by source so keyboard and
 controller releases cannot cancel each other; clear the affected source on
@@ -92,6 +96,8 @@ Milestone one is first-frame and runtime validation:
   conversion, bounded drift correction, and underrun/overrun metrics;
 - up to two browser gamepads are assigned to P1/P2 with standard-layout mapping
   and analog directional fallback;
+- the browser exposes the original bsnes software-filter presets, overscan,
+  hires blur, aspect choices, fit/integer scaling, and fullscreen;
 - the Next.js project lives at the repository root and `vercel.json` performs a
   pinned Emscripten core build before the Vercel Next.js build;
 - the native frontend remains unchanged.
@@ -99,8 +105,8 @@ Milestone one is first-frame and runtime validation:
 Do not generalize the short Chrome smoke test into broad compatibility. A
 documented public-domain reference ROM, state round-trip, sustained audible
 playback across real devices, physical controller validation, SRAM persistence,
-long-run stability, the first remote Vercel deployment, and additional browsers
-remain unvalidated.
+long-run stability, native OpenGL shader preset compatibility, the first remote
+Vercel deployment, and additional browsers remain unvalidated.
 
 ## Build and validation commands
 
