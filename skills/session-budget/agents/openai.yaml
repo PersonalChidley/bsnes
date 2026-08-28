@@ -1,0 +1,4 @@
+interface:
+  display_name: "Session Budget"
+  short_description: "Report usage budget and checkpoint before it runs out"
+  default_prompt: "Use $session-budget to report the remaining usage block budget and, if it is nearly exhausted, write a resumable handoff."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workspace Sync"
+  short_description: "Compare and port skills across sibling repositories"
+  default_prompt: "Use $workspace-sync to survey the skills in this workspace's repositories, report which repository holds the strongest version of each, and port an approved improvement into this repository."

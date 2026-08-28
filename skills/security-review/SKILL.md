@@ -32,6 +32,10 @@ deployed systems, third parties, or accounts.
 
 ## Preserve boundaries
 
+Follow the [shared review conventions](../improve/references/review-conventions.md)
+for mode selection, evidence and honest reporting, and preservation of unrelated
+work. The boundaries below are specific to security review.
+
 - Keep all testing non-destructive and local unless the user explicitly
   authorizes a precise external target and method.
 - Never expose, copy, rotate, or validate real secrets by printing them.
@@ -41,7 +45,6 @@ deployed systems, third parties, or accounts.
   concerns as confirmed vulnerabilities without tracing reachability.
 - Do not change authentication, authorization, encryption, retention, or
   security policy based on an unresolved product decision.
-- Preserve existing work and avoid opportunistic refactors.
 
 ## Run the workflow
 
@@ -56,10 +59,16 @@ privileged code or sensitive output.
 Inspect applicable areas:
 
 - authentication, session handling, and account recovery;
-- authorization, object ownership, tenant and role scoping;
+- authorization, object ownership, tenant and role scoping — including
+  ordering: a query-layer helper that resolves ownership and mutates in one
+  call denies the caller any point to inject a scope check between the two,
+  so the read and the write belong in separate functions whenever the caller
+  must authorize in between;
 - input validation, output encoding, injection, and unsafe HTML;
 - CSRF, CORS, framing, redirects, and browser security boundaries;
 - uploads, object storage, content validation, and download authorization;
+- lifecycle visibility versus operational capability, especially when draft,
+  active, archived, shared, or nullable-owner states have distinct semantics;
 - SSRF, webhook signatures, callback URLs, and provider-bound requests;
 - secret handling, environment configuration, logging, and error disclosure;
 - dependency and supply-chain reachability;
@@ -67,8 +76,41 @@ Inspect applicable areas:
 - data minimization, retention, deletion, backups, and sensitive AI/provider
   flows.
 
+Treat a meaningful null owner as an explicit scope state, never automatically
+as global access or an invalid row. Trace who selects any narrower target scope
+and reauthorize that target at the enforcement boundary. For limited-use
+downloads, keep preview GETs side-effect free and atomically claim expiry,
+revocation, and usage before minting a short-lived credential.
+
 Trace from entry point to sink and through every enforcement boundary. Check
 both read and write paths, including indirect references supplied by clients.
+
+When a sink's protection keys on **position** rather than content, identify
+which value actually lands in the guarded position. A leading-character guard —
+spreadsheet-formula neutralization, comment or directive prefixes, shell and
+log-line escaping — protects only the field composed first, so a cell, line, or
+argument assembled from several user-controlled values leaves the rest
+unguarded even though every one of them passed through the sanitizer. Verify
+the composing field, not whichever one is easiest to reach, and write the
+regression test against that position.
+
+The same trap runs on the input side: a container-format signature scan (a
+ZIP's `[Content_Types].xml`, any manifest or magic-string check bounded to a
+fixed byte prefix) treats the producing tool's part order as a guarantee
+rather than a convention. A legitimately different write order pushes the
+marker past the window and a valid file is rejected with no attacker
+involved — the fix is not a bigger constant guessed from one sample but a
+scan sized to the format's real variance, proven with a fixture that
+deliberately displaces the marker past the old boundary.
+
+A documented masking or redaction rule ("show first name and last initial
+only," "never display contact details to this audience") is a promise about
+every surface that serves that audience, not just the one artifact — an
+email template, a page prop — where a scan or a finding first named it. After
+fixing one instance, grep for every other renderer of the same underlying
+field reaching the same untrusted audience before treating the rule as
+satisfied; a second, independently-built consumer of identical data is a
+common way the same disclosure survives one fix.
 
 ### 3. Verify findings
 
@@ -101,6 +143,12 @@ access, data retention, live credentials, or external systems.
 - Run supported static, dependency, lint, and type checks as appropriate.
 - Re-trace bypass variants and sibling entry points after a fix.
 - Inspect the diff for new data exposure, weaker defaults, or missing guards.
+- Verify a configured response header against an actual request to the route,
+  not just the config source: a framework can silently override one header
+  from a shared rule (e.g. its own dynamic-render `Cache-Control` beating a
+  `next.config.ts` `no-store` entry) while sibling headers from the same rule
+  (`Referrer-Policy`, frame-denial) land correctly, so a config diff alone
+  cannot confirm a security-relevant header actually reaches the client.
 - Report tool limits, false-positive analysis, and untested assumptions.
 
 ## Deliverable

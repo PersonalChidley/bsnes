@@ -1,0 +1,4 @@
+interface:
+  display_name: "VS Code"
+  short_description: "Keep the web shell and core workspace correct"
+  default_prompt: "Use $vscode to keep this repository's VS Code workspace correct across the Next.js shell and the C/C++ core, and hold debugging work to a senior engineer's standard, paired with $coding-ninja."

@@ -1,142 +1,174 @@
 ---
 name: improve
-description: Review and improve the bsnes repository and its incremental browser port. Run one improvement-loop iteration that scans a focus area, fixes the highest-priority actionable items, verifies them, and records the result, or perform a read-only repository health assessment across emulation correctness, web architecture, security, performance, documentation, and tests. Use when the user says "/improve", "run the improvement loop", "what should we fix next", "assess the repo", "run a health check", asks how healthy or release-ready the repository is, or requests recurring maintenance.
+description: Assess or improve the bsnes web port through an evidence-backed maintenance loop that inspects governance and docs/improvement-backlog.md, selects the highest-value risk, makes a scoped fix when authorized, validates it with lint, typecheck, and build, and records the result. Use for "/improve", repository health checks, pre-deploy maintenance, "what should we fix next", or recurring improvement work on the browser shell and its WebAssembly core boundary. Do not use to rewrite emulation logic in TypeScript, and do not use for a deep security, performance, documentation, or test-only audit when the corresponding specialist skill is the better fit.
 ---
 
-# Improve bsnes
+# Improve
 
-Improve bsnes without compromising the accuracy or ownership boundaries of the
-native emulator. Treat `AGENTS.md` as repository policy,
-`docs/web-port.md` as the browser-port engineering record, and
-`docs/improvement-backlog.md` as the improvement loop's memory.
+Run one disciplined improvement iteration or produce a read-only repository
+health assessment. Use repository evidence and governance instead of carrying
+assumptions from one project into another.
 
 ## Select the mode
 
-- Use **loop** for one iteration: orient, scan one focus area, fix a reviewable
-  set of the highest-priority actionable findings, verify, and record.
-- Use **assess** for a read-only health review using
-  [references/review-checklist.md](references/review-checklist.md) and the
-  report contract in
-  [references/output-contracts.md](references/output-contracts.md).
+- Use **loop** when the user asks to improve, fix, or run the maintenance loop.
+- Use **assess** when the user asks to review, report, or check one repository.
+- Use **portfolio** for a read-only comparison of two or more repositories.
 
-Use `assess` for requests to review, report, or evaluate without authorization
-to edit. Use `loop` when the user asks to improve or fix the repository.
+Treat a review request as read-only. In ambiguous cases, infer the mode from
+the requested outcome; do not turn an assessment into edits.
+
+## Establish context
+
+1. Read the root and applicable nested agent instructions.
+2. Inspect version-control status and preserve unrelated work.
+3. Locate the repository's backlog, manifests, architecture guidance,
+   validation commands, release policy, and generated or reference-only paths.
+4. For a repository with a maintained profile, read
+   [references/repository-profiles.md](references/repository-profiles.md).
+   Treat the repository's current instructions and manifests as authoritative
+   if a profile has drifted.
+5. Exclude dependencies, caches, build output, local environments, credential
+   stores, reports, and generated files unless the request specifically puts
+   them in scope.
 
 ## Preserve boundaries
 
-- Read and follow `AGENTS.md` before acting. Preserve unrelated work.
-- Keep CPU, PPU, SMP/APU, cartridge, timing, and serialization behavior in
-  C/C++; do not reimplement emulation logic in TypeScript.
-- Prefer frontend adapters over changes to `bsnes/sfc/`. Treat changes to core
-  timing, scheduling, serialization, and compatibility as high-judgment work.
-- Keep emulation in the dedicated worker. Keep the browser ABI small,
-  C-compatible, and synchronized with the typed worker protocol.
-- Do not commit ROMs, firmware, keys, saves, generated Wasm, `node_modules`, or
-  `.next`. Use only licensed homebrew/public-domain fixtures and record their
-  provenance.
-- Keep ROM and save data local unless the user explicitly authorizes and
-  documents a different data flow.
-- Do not claim browser gameplay, audio, persistence, or compatibility from a
-  build alone. Apply the runtime acceptance criteria in `docs/web-port.md`.
-- Do not commit, push, publish, deploy, or probe external systems unless the
-  user explicitly authorizes the action.
-- In assess mode, do not edit source, dependencies, backlog, or documentation.
-  Separate verified defects, evidence-backed risks, inferences, and open
-  questions.
+- Keep product policy, architecture, authorization, and live-system decisions
+  with the user or their documented owner.
+- Do not commit, push, publish, deploy, migrate shared data, provision
+  infrastructure, or contact external services unless explicitly authorized.
+- Never read or print secret values. Inspect only names, safe examples, and
+  code paths needed to verify secret handling.
+- Do not transfer framework assumptions between repositories. The workspace
+  contains different auth versions, database libraries, rendering models, test
+  runners, and deployment boundaries.
+- Keep default tests offline. Never point browser or integration tests at a
+  production database or tenant.
+- Before running any validation command, determine whether it writes generated
+  artifacts, loads live local configuration, starts services, or can contact a
+  provider. In assess and portfolio modes, prefer safe offline checks and
+  report intentionally skipped builds or integrations rather than broadening
+  the review's effects.
+- Distinguish a verified defect from a risk, inference, or improvement idea.
 
-## Run loop mode
+## Loop mode
 
 ### 1. Orient
 
-- Read `AGENTS.md`, `README.md`, `docs/web-port.md`, and
-  `docs/improvement-backlog.md`.
-- Inspect `git status` and identify pre-existing changes.
-- Run the narrow baseline for the selected area. For the browser shell, use
-  `npm run check` and `npm audit` from the repository root. Check for `em++` and GNU Make
-  before attempting `npm run core:build`.
+- Read the backlog before choosing work.
+- Run the repository's required baseline checks when practical. If the
+  baseline is already broken, determine whether the failure is in scope and
+  whether it predates the session.
+- Identify the least recently reviewed focus area unless the user named one.
 
 ### 2. Scan one focus area
 
-Choose the user-named area or the least recently reviewed area:
+Choose one coherent lens:
 
-- **emulation correctness** — core/frontend boundaries, frame behavior,
-  scheduler changes, state synchronization, and native compatibility;
-- **web runtime** — worker ownership, ABI/protocol agreement, frame pacing,
-  input, audio buffering, persistence, and recoverable errors;
-- **build and portability** — Emscripten/Make integration, native target
-  isolation, generated artifacts, browser headers, and reproducibility;
-- **security and privacy** — hostile ROM/state inputs, memory and resource
-  bounds, local-data guarantees, dependencies, headers, and data egress;
-- **tests and compatibility** — legal fixtures, negative paths, state
-  round-trips, PAL/NTSC, browsers, enhancement chips, and long-run stability;
-- **performance** — Wasm size and startup, memory high-water mark, Asyncify
-  overhead, frame/audio timing, copies, and main-thread responsiveness;
-- **accessibility and UX** — keyboard-only operation, labels, focus, errors,
-  controller mapping, responsive layout, and mobile controls;
-- **documentation alignment** — README, `AGENTS.md`, `docs/web-port.md`,
-  commands, current milestone, and implementation claims.
+- security and privacy;
+- correctness and data integrity;
+- tests and reproducibility;
+- reliability and failure handling;
+- performance and operability;
+- documentation and cross-surface alignment; or
+- foundations such as auth, data access, release mechanics, and CI.
 
-Record real findings with evidence, priority, rationale, and an observable
-completion condition. Do not manufacture findings to fill every category.
+Read the relevant section of
+[references/review-checklist.md](references/review-checklist.md) for a deeper
+pass. Add only evidence-backed findings to the backlog and order them by
+impact, urgency, and dependencies.
 
-### 3. Fix
+### 3. Fix a reviewable unit
 
-- Address actionable High items first, then the highest-value Medium items that
-  fit one reviewable change.
-- Add focused regression coverage for behavior changes when an existing test
-  seam exists. Do not distort production architecture merely to obtain a
-  coverage number.
-- Update both sides of ABI or worker-protocol changes.
-- Avoid broad formatting or unrelated upstream cleanup.
+- Address actionable High items first, then the best-supported Medium item.
+- Keep the patch small enough to attribute and review.
+- Add a focused regression test for every bug fix or behavior change. If code
+  is hard to test, extract the smallest import-safe seam rather than moving
+  policy or weakening boundaries.
+- Preserve public contracts, authorization, accessibility, time zones,
+  ordering, money precision, and external failure behavior.
+- Stop for direction when the change would decide policy, alter live data, or
+  expand the requested scope materially.
 
-### 4. Verify
+### 4. Validate
 
-- Run the narrowest relevant check first, then the applicable commands in
-  `AGENTS.md`.
-- For browser shell changes, run `npm run check` and `npm audit`.
-- When the toolchain exists and the core/build boundary changed, clean the
-  shared object directory as required and run `npm run core:build`.
-- For runtime changes, validate with a legal ROM against the acceptance
-  criteria in `docs/web-port.md`; state exactly what could not be tested.
-- Recheck `git status` and inspect the final diff.
+- Run the narrowest relevant test first, then the repository's required
+  lint/type/build/test gates in the order prescribed by its instructions.
+- Reproduce the original failure or acceptance condition where practical.
+- Inspect the final diff for unrelated changes, generated artifacts, secrets,
+  weakened checks, and accidental behavior changes.
+- Report skipped, unavailable, pre-existing, and failed checks honestly.
+- Run `$coding-ninja` checkpoint mode after the focused validation so verified
+  lessons improve the relevant canonical skills before the next loop unit.
 
 ### 5. Record
 
-- Update `docs/improvement-backlog.md`: close completed items with the date and
-  validation evidence, and add material unresolved findings.
-- Update `README.md`, `docs/web-port.md`, and `AGENTS.md` when status,
-  architecture, prerequisites, blockers, or validation commands changed.
-- Add plain-language release notes only when the session produced a
-  user-visible or maintainer-relevant change, following
-  [`release-notes-on-session-end`](../release-notes-on-session-end/SKILL.md).
+- Update the repository's established backlog with the completed outcome,
+  date, evidence, validation, and remaining work.
+- Update canonical and required mirrored guidance only when conventions or
+  current behavior changed.
+- Use `$documentation-sync` for non-trivial documentation reconciliation.
+- Use `$version-bump` only when the user requested a release.
 
-## Run assess mode
+## Assess mode
 
-1. Read repository instructions, status documents, backlog, and relevant
-   manifests; inspect the working tree.
-2. Map source, tests, documentation, architecture, configuration, generated
-   artifacts, and validation surfaces.
-3. Apply each relevant lens in
-   [references/review-checklist.md](references/review-checklist.md) at triage
-   depth. Cite repository-relative evidence and mark limitations.
-4. Prioritize proposed outcomes using
-   [references/output-contracts.md](references/output-contracts.md). Do not
-   edit the backlog in assess mode.
-5. Report scope and limitations, strengths, verified weaknesses and risks,
-   documentation and test evidence, highest-value next improvements, changes
-   made, and validation performed. Do not invent numeric coverage or readiness.
+1. Build a current-state map of source, tests, data boundaries, automation,
+   documentation, decisions, and generated artifacts.
+2. Read [references/review-checklist.md](references/review-checklist.md) and
+   apply each relevant lens at triage depth.
+3. Capture material findings with repository-relative evidence, consequence,
+   confidence, a proposed outcome, and any specialist review needed.
+4. Deduplicate by outcome and prioritize using
+   [references/output-contracts.md](references/output-contracts.md).
+5. Report strengths as well as weaknesses. Do not invent numeric coverage,
+   performance, or health scores.
+
+Use the specialist skill instead when depth is the primary goal:
+
+- `$security-review` for threat and trust-boundary analysis;
+- `$performance-review` for measurement and optimization;
+- `$test-coverage-review` for behavior-to-test mapping; and
+- `$documentation-sync` for claim-by-claim documentation reconciliation.
+
+## Portfolio mode
+
+1. Establish the same scope and evidence standard for every repository.
+2. Assess each repository independently before comparing it with siblings.
+3. Normalize findings by outcome and consequence, not by framework or raw
+   issue count.
+4. Identify genuinely shared risks, reusable practices, and inconsistent
+   policies only when direct evidence supports the comparison.
+5. Keep repository-specific backlogs separate. Produce a workspace priority
+   view without silently writing findings into every source repository.
+6. Treat full baselines as optional evidence at triage depth. Run only checks
+   confirmed safe for the local environment and list every skipped gate per
+   repository.
+
+## Deliverable
+
+For loop mode, report the focus area, issue fixed, evidence, files changed,
+checks run, backlog updates, and next recommended focus.
+
+For assess or portfolio mode, use the health-report contract in
+[references/output-contracts.md](references/output-contracts.md), including
+scope, strengths, prioritized risks, highest-value next work, validation, and
+limitations.
 
 ## Completion criteria
 
-- Loop mode leaves a verified, reviewable change and an accurate backlog, or
-  clearly reports the blocker and evidence gathered.
-- Assess mode leaves the working tree unchanged and reports strengths alongside
-  risks.
-- Every runtime or milestone claim matches current evidence.
+- The selected mode and authorization boundary were respected.
+- Findings and changes are traceable to repository evidence.
+- Behavior changes have focused regression coverage.
+- Required checks passed or their exact limitations are reported.
+- Loop-mode backlog and affected canonical guidance reflect the result.
+- Portfolio conclusions preserve meaningful repository differences.
 
 ## Resources
 
-- [references/review-checklist.md](references/review-checklist.md)
-- [references/output-contracts.md](references/output-contracts.md)
-- [agents/claude-code.md](agents/claude-code.md)
-- [agents/openai.yaml](agents/openai.yaml)
+- [references/repository-profiles.md](references/repository-profiles.md) —
+  dispatch facts and fragile boundaries for reviewed repositories.
+- [references/review-checklist.md](references/review-checklist.md) — the
+  multi-lens audit checklist.
+- [references/output-contracts.md](references/output-contracts.md) — backlog
+  and health-report contracts.

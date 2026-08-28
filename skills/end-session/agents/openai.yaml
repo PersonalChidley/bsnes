@@ -1,0 +1,4 @@
+interface:
+  display_name: "End Session"
+  short_description: "Close out a session with notes, checks, and handoff"
+  default_prompt: "Use $end-session to reconstruct this session's work, decide the release question, record notes, run the required checks, and prepare a handoff."

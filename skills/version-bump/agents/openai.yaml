@@ -1,0 +1,4 @@
+interface:
+  display_name: "Version Bump"
+  short_description: "Prepare a release at an explicit semantic version"
+  default_prompt: "Use $version-bump to validate a strictly newer semantic version, update the real version source, and run the release checks."

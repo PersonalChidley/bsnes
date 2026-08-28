@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build",
+    "skills:validate": "node scripts/validate-skills.mjs",
     "core:build": "node scripts/build-core.mjs",
     "vercel:build": "node scripts/prepare-vercel-core.mjs && next build"
   },

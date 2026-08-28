@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Cleanup"
+  short_description: "Find stale files and plan a recoverable cleanup"
+  default_prompt: "Use $project-cleanup to trace which files are genuinely unused and propose a recoverable cleanup for explicit approval."

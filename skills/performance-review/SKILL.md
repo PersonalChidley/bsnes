@@ -30,6 +30,10 @@ Default to `review` when edit authorization is unclear.
 
 ## Preserve boundaries
 
+Follow the [shared review conventions](../improve/references/review-conventions.md)
+for mode selection, evidence and honest reporting, and preservation of unrelated
+work. The boundaries below are specific to performance review.
+
 - Do not optimize without a baseline or a traceable cost model.
 - Preserve correctness, accessibility, authorization, tenant isolation,
   privacy, cache semantics, and public response contracts.
@@ -75,6 +79,14 @@ Inspect relevant risks:
 - cache misses, unsafe cache scope, and ineffective invalidation;
 - server/client component boundaries and hydration cost;
 - oversized JavaScript, images, fonts, JSON, and embedded assets;
+- lightweight routes importing a trivial helper from a heavyweight module,
+  which can pull that module's runtime-only dependencies and initialization
+  into the critical path; move the pure helper to a dependency-light owner
+  and keep the heavyweight module as a caller or compatibility re-export;
+- stable media derivatives repeatedly transformed on request when one trusted
+  ingest-time generation plus durable storage would reduce metered work and
+  cache-miss cost; include storage, invalidation, and failure atomicity in the
+  comparison;
 - synchronous work on latency-sensitive paths;
 - retry storms, queue contention, concurrency limits, and backpressure;
 - memory retention, large buffers, and unbounded collections; and

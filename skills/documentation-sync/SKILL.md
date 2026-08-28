@@ -31,6 +31,10 @@ Default to `assess` when edit authorization is unclear.
 
 ## Preserve boundaries
 
+Follow the [shared review conventions](../improve/references/review-conventions.md)
+for mode selection, evidence and honest reporting, and preservation of unrelated
+work. The boundaries below are specific to documentation sync.
+
 - Do not change product behavior, configuration, dependencies, schemas, or
   architecture to make documentation true.
 - Do not resolve product, security, or architecture ambiguity by choosing a

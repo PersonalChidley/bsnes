@@ -135,6 +135,13 @@ to the `SKILL.md` frontmatter.
 | `test-coverage-review` | Implemented | Map important behavior and risk to test evidence |
 | `security-review` | Implemented | Perform a deeper threat- and trust-boundary review |
 | `performance-review` | Implemented | Measure and explain performance risks |
+| `project-cleanup`    | Implemented | Find unused or stale files and plan a recoverable, explicitly approved cleanup |
+| `version-bump`       | Implemented | Prepare a release at an explicit semantic version using the repository's real version source |
+| `end-session`        | Implemented | Coordinate release choice, notes, documentation, checks, and an authorized handoff |
+| `coding-ninja`       | Implemented | Capture durable engineering lessons and checkpoint them into the other skills |
+| `vscode`             | Implemented | Keep the VS Code workspace correct and hold editor work to a senior engineer's bar |
+| `session-budget`     | Implemented | Report the remaining usage block and write a resumable handoff when it runs low |
+| `workspace-sync`     | Implemented | Compare skills across sibling repositories and port an approved improvement in |
 | `refactoring-review` | Candidate | Propose behavior-preserving simplifications |
 | `backlog-grooming` | Candidate | Deduplicate and prepare an existing backlog for decisions |
 | `dependency-review` | Candidate | Review dependency need, risk, licensing, and update posture |

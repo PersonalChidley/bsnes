@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coding Ninja"
+  short_description: "Capture and propagate durable engineering lessons"
+  default_prompt: "Use $coding-ninja to capture verified lessons while coding, keep affected documentation current, and checkpoint what generalizes into the repository's other skills."
